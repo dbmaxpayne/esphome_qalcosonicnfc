@@ -175,7 +175,7 @@ bool PN5180::readRegister(uint8_t reg, uint32_t *value) {
  */
 bool PN5180::readEEprom(uint8_t addr, uint8_t *buffer, int len) {
   if ((addr > 254) || ((addr+len) > 254)) {
-    ESP_LOGE(TAG, "ERROR: Reading beyond addr 254!\n");
+    ESP_LOGE(TAG, "ERROR: Reading beyond addr 254 is not supported!");
     return false;
   }
 
