@@ -20,6 +20,10 @@ ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 N
 | 16        | BUSY       |
 | 17        | RST        |
 
+## Special Thanks
+Special thanks goes to @ATrappmann for his PN5180-Library (https://github.com/ATrappmann/PN5180-Library).
+Without his work, this project would not have been possible.
+
 ## Example configuration
 ```
 external_components:
