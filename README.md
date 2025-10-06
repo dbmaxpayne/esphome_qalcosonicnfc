@@ -64,6 +64,6 @@ logger:
 ```
 
 ## Images
-![ESP32 stacked with PN5180](./media/esp32_pn5180_1.jpg)
-![ESP32 stacked with PN5180](./media/esp32_pn5180_2.jpg)
-![ESP32 stacked with PN5180](./media/esp32_pn5180_3.jpg)
+![ESP32 stacked with PN5180](./media/esp32_pn5180_1.jpg | width=100)
+![ESP32 stacked with PN5180](./media/esp32_pn5180_2.jpg | width=100)
+![ESP32 stacked with PN5180](./media/esp32_pn5180_3.jpg | width=100)
