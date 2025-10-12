@@ -6,7 +6,7 @@ from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVA
 
 CODEOWNERS = ["@dbmaxpayne"]
 
-AUTO_LOAD = ["sensor", "text_sensor", "spi"]
+AUTO_LOAD = ["sensor", "text_sensor", "spi", "watchdog"]
 
 DEPENDENCIES = ["network"]
 

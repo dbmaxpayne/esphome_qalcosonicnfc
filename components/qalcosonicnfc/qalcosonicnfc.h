@@ -26,6 +26,34 @@
 #include <esphome/core/hal.h>
 #include "PN5180ISO15693.h"
 
+// ST25DV04K command definitions
+#define ST25_WRITE_MESSAGE       (0xAA)
+#define ST25_READ_MSG_LENGTH     (0xAB)
+#define ST25_READ_MSG            (0xAC)
+#define ST25_READ_DYN_CONFIG     (0xAD)
+#define ST25_WRITE_DYN_CONFIG    (0xAE)
+
+#define ST25_MFG_CODE            (0x02)
+#define ST25_REQUEST_FLAGS       (0x22) // High Data Rate + Address flag
+
+#define ST25_MB_CTRL_DYN         (0x0D) // Dynamic Control Register Address indicating the mailbox status
+#define ST25_MB_EN               (1)
+#define ST25_HOST_PUT_MSG        (2)
+#define ST25_RF_PUT_MSG          (4)
+#define ST25_RFU                 (8)
+#define ST25_HOST_MISS_MSG      (16)
+#define ST25_RF_MISS_MSG        (32)
+#define ST25_HOST_CURRENT_MSG   (64)
+#define ST25_RF_CURRENT_MSG     (128)
+
+#define ST25_EH_CTRL_DYN         (0x02) // Dynamic Control Register Address indicating energy harvesting status
+#define ST25_EH_EN               (1)    // Is energy harvesting enabled (even after boot)?
+#define ST25_EH_ON               (2)    // Is energy harvesting enabled now?
+#define ST25_FIELD_ON            (4)    // Is RF field detected
+#define ST25_VCC_ON              (8)
+
+#define QALCOSONIC_CMD_TERMINATOR (0x16)
+
 namespace esphome {
 namespace qalcosonicnfc {
 
@@ -39,7 +67,18 @@ class QalcosonicNfc : public esphome::PollingComponent {
   InternalGPIOPin *RST_;
   PN5180ISO15693* nfc_;
   bool errorFlag;
+  uint8_t meterUid[8];
+  uint8_t *readBuffer; // Buffer for any data that is received
+  uint16_t responseLength; // Stores the actual length of the received data
   void showIRQStatus(uint32_t irqStatus);
+  bool st25MailboxEnable();
+  bool st25MailboxGetState();
+  bool st25WriteDynConfig(uint8_t pointerAddress, uint8_t registerValue);
+  bool st25ReadDynConfig(uint8_t pointerAddress);
+  bool st25WriteMessage(uint8_t *message, uint8_t messageLength);
+  bool st25GetMessageLength();
+  bool st25GetMessage();
+  bool issueMeterCommand(uint8_t *qalcosonicCmd, uint8_t qalcosonicCmdLen);
   sensor::Sensor *water_usage_sensor_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
 

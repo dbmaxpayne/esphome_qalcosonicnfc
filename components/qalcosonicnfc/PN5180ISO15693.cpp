@@ -353,7 +353,7 @@ void PN5180ISO15693::printAfiId(uint8_t afiId) {
  *   >0 = Error code
  */
 ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr) {
-  ESP_LOGD(TAG, "Issue Command 0x%02X", cmd[1]);
+  ESP_LOGD(TAG, "Issue Command: %s", getFormattedHexString(" ", cmdLen, cmd).c_str());
 
   sendData(cmd, cmdLen);
   delay(10);
@@ -403,12 +403,13 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
 }
 
 ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr, uint16_t *responseLength) {
-  ESP_LOGD(TAG, "Issue Command 0x%02X", cmd[1]);
+  ESP_LOGD(TAG, "Issue Command: %s", getFormattedHexString(" ", cmdLen, cmd).c_str());
 
   sendData(cmd, cmdLen);
   delay(10);
   uint32_t status = getIRQStatus();
   if (0 == (status & RX_SOF_DET_IRQ_STAT)) {
+    ESP_LOGE(TAG, "ERROR code=0x%02X - %s", EC_NO_CARD, ISO15693ErrorCodeToStr((ISO15693ErrorCode)EC_NO_CARD));
     return EC_NO_CARD;
   }
   while (0 == (status & RX_IRQ_STAT)) {

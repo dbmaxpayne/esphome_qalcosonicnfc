@@ -21,6 +21,7 @@
 #include "PN5180Debug.h"
 #include <string>
 #include <Arduino.h>
+#include "esphome/core/log.h"
 
 std::string getFormattedHexString(const char* separator, uint8_t bufLen, uint8_t *bufPointer)
   {
