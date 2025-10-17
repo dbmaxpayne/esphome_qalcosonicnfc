@@ -22,6 +22,8 @@
 
 #include "PN5180.h"
 
+namespace esphome {
+
 enum ISO15693ErrorCode {
   EC_NO_CARD = -1,
   ISO15693_EC_OK = 0,
@@ -40,11 +42,8 @@ enum ISO15693ErrorCode {
 class PN5180ISO15693 : public PN5180 {
 
 public:
-  PN5180ISO15693(uint8_t SSpin, uint8_t BUSYpin, uint8_t RSTpin);
+  PN5180ISO15693(GPIOPin *mosi_pin, GPIOPin *miso_pin, GPIOPin *sck_pin, GPIOPin *nss_pin, GPIOPin *busy_pin, GPIOPin *rst_pin);
   
-//private:
-  //ISO15693ErrorCode issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr);
-public:
   ISO15693ErrorCode issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr);
   ISO15693ErrorCode issueISO15693Command(uint8_t *cmd, uint8_t cmdLen, uint8_t **resultPtr, uint16_t *responseLength);
   ISO15693ErrorCode getInventory(uint8_t *uid);
@@ -58,10 +57,11 @@ public:
   /*
    * Helper functions
    */
-public:   
   bool setupRF();
-  const __FlashStringHelper *ISO15693ErrorCodeToStr(ISO15693ErrorCode errorCode);
-    
+  //const __FlashStringHelper *ISO15693ErrorCodeToStr(ISO15693ErrorCode errorCode);
+  const char *ISO15693ErrorCodeToStr(ISO15693ErrorCode errorCode);
 };
+
+} //esphome
 
 #endif /* PN5180ISO15693_H */

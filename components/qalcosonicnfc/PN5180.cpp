@@ -18,10 +18,13 @@
 // Lesser General Public License for more details.
 //
 
-#include <Arduino.h>
+//#include <Arduino.h>
+#include <driver/gpio.h>
 #include "esphome/core/log.h"
 #include "PN5180.h"
 #include "PN5180Debug.h"
+
+namespace esphome {
 
 // PN5180 1-Byte Direct Commands
 // see 11.4.3.3 Host Interface Command List
@@ -41,36 +44,55 @@
 static const char *const TAG = "PN5180";
 uint8_t PN5180::readBuffer[508];
 
-PN5180::PN5180(uint8_t SSpin, uint8_t BUSYpin, uint8_t RSTpin) {
-  PN5180_NSS = SSpin;
-  PN5180_BUSY = BUSYpin;
-  PN5180_RST = RSTpin;
+PN5180::PN5180(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst) {
+  MOSI_ = mosi;
+  MISO_ = miso;
+  SCK_  = sck;
+  NSS_  = nss;
+  BUSY_ = busy;
+  RST_  = rst;
+}
+
+void PN5180::begin() {
+  // Ensure pin modes
+  // SPI pins are setup by the SPIComponent
+  this->NSS_->setup();
+  this->NSS_->pin_mode(gpio::FLAG_OUTPUT);
+  this->BUSY_->setup();
+  this->BUSY_->pin_mode(gpio::FLAG_INPUT);
+  this->RST_->setup();
+  this->RST_->pin_mode(gpio::FLAG_OUTPUT);
+
+  this->NSS_->digital_write(HIGH); // disable
+  this->RST_->digital_write(HIGH); // no reset
 
   /*
    * 11.4.1 Physical Host Interface
    * The interface of the PN5180 to a host microcontroller is based on a SPI interface,
-   * extended by signal line BUSY. The maximum SPI speed is 7 Mbps and fixed to CPOL
-   * = 0 and CPHA = 0.
+   * extended by signal line BUSY. The maximum SPI speed is 7 Mbps and fixed to CPOL = 0 and CPHA = 0.
    */
-  // Settings for PN5180: 7Mbps, MSB first, SPI_MODE0 (CPOL=0, CPHA=0)
-  PN5180_SPI_SETTINGS = SPISettings(7000000, MSBFIRST, SPI_MODE0);
-}
-
-void PN5180::begin() {
-  pinMode(PN5180_NSS, OUTPUT);
-  pinMode(PN5180_BUSY, INPUT);
-  pinMode(PN5180_RST, OUTPUT);
-
-  digitalWrite(PN5180_NSS, HIGH); // disable
-  digitalWrite(PN5180_RST, HIGH); // no reset
-
-  SPI.begin();
-  ESP_LOGD(TAG, "SPI pinout: SS=%u MOSI=%u MISO=%u SCK=%u", SS, MOSI, MISO, SCK);
+  SPIComponent_ = new spi::SPIComponent();
+  SPIDevice_    = new spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
+                                     spi::DATA_RATE_5MHZ>;
+  SPIComponent_->set_component_source(LOG_STR("spi"));
+  SPIComponent_->set_clk(SCK_);
+  SPIComponent_->set_miso(MISO_);
+  SPIComponent_->set_mosi(MOSI_);
+  SPIComponent_->set_interface(SPI2_HOST);
+  SPIComponent_->set_interface_name("SPI2_HOST");
+  SPIDevice_->set_bit_order(spi::BIT_ORDER_MSB_FIRST);
+  SPIDevice_->set_spi_parent(SPIComponent_);
+  SPIDevice_->set_data_rate(spi::DATA_RATE_2MHZ);// Max is 7MHz
+  SPIDevice_->set_mode(spi::MODE0);
+  
+  this->SPIComponent_->setup();
+  this->SPIComponent_->dump_config();
+  this->SPIDevice_->spi_setup();
 }
 
 void PN5180::end() {
-  digitalWrite(PN5180_NSS, HIGH); // disable
-  SPI.end();
+  this->NSS_->digital_write(HIGH); // disable
+  this->SPIDevice_->spi_teardown();
 }
 
 /*
@@ -90,9 +112,9 @@ bool PN5180::writeRegister(uint8_t reg, uint32_t value) {
    */
   uint8_t buf[6] = { PN5180_WRITE_REGISTER, reg, p[0], p[1], p[2], p[3] };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(buf, 6);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   return true;
 }
@@ -112,9 +134,9 @@ bool PN5180::writeRegisterWithOrMask(uint8_t reg, uint32_t mask) {
 
   uint8_t buf[6] = { PN5180_WRITE_REGISTER_OR_MASK, reg, p[0], p[1], p[2], p[3] };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(buf, 6);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   return true;
 }
@@ -134,9 +156,9 @@ bool PN5180::writeRegisterWithAndMask(uint8_t reg, uint32_t mask) {
 
   uint8_t buf[6] = { PN5180_WRITE_REGISTER_AND_MASK, reg, p[0], p[1], p[2], p[3] };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(buf, 6);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   return true;
 }
@@ -153,10 +175,14 @@ bool PN5180::readRegister(uint8_t reg, uint32_t *value) {
 
   uint8_t cmd[2] = { PN5180_READ_REGISTER, reg };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
-  transceiveCommand(cmd, 2, (uint8_t*)value, 4);
-  SPI.endTransaction();
+  this->SPIDevice_->enable();
+  bool success = transceiveCommand(cmd, 2, (uint8_t*)value, 4);
+  this->SPIDevice_->disable();
 
+  if(!success) {
+      ESP_LOGE(TAG, "Reading register %02X failed", reg);
+      return false;
+  }
   ESP_LOGD(TAG, "Register value=%02X", *value);
 
   return true;
@@ -173,19 +199,19 @@ bool PN5180::readRegister(uint8_t reg, uint32_t *value) {
  * not go beyond EEPROM address 254. If the condition is not fulfilled, an exception is
  * raised.
  */
-bool PN5180::readEEprom(uint8_t addr, uint8_t *buffer, int len) {
+bool PN5180::readEEprom(uint8_t addr, uint8_t *buffer, uint8_t len) {
   if ((addr > 254) || ((addr+len) > 254)) {
     ESP_LOGE(TAG, "ERROR: Reading beyond addr 254 is not supported!");
     return false;
   }
 
-  ESP_LOGD(TAG, "Reading EEPROM at 0x%02X, size=", addr, len);
+  ESP_LOGD(TAG, "Reading EEPROM at 0x%02X, size=0x%02X", addr, len);
 
   uint8_t cmd[3] = { PN5180_READ_EEPROM, addr, len };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(cmd, 3, buffer, len);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   ESP_LOGD(TAG, "EEPROM values:%s", getFormattedHexString(" ", len, buffer).c_str());
 
@@ -239,9 +265,9 @@ bool PN5180::sendData(uint8_t *data, int len, uint8_t validBits) {
     return false;
   }
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(buffer, len+2);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   return true;
 }
@@ -269,9 +295,9 @@ uint8_t * PN5180::readData(int len, uint8_t *buffer /* = NULL */) {
 
   uint8_t cmd[2] = { PN5180_READ_DATA, 0x00 };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(cmd, 2, buffer, len);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   ESP_LOGD(TAG, "Data read: %s", getFormattedHexString(" ", len, buffer).c_str());
 
@@ -301,9 +327,9 @@ bool PN5180::loadRFConfig(uint8_t txConf, uint8_t rxConf) {
 
   uint8_t cmd[3] = { PN5180_LOAD_RF_CONFIG, txConf, rxConf };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(cmd, 3);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
   return true;
 }
@@ -318,11 +344,13 @@ bool PN5180::setRF_on() {
 
   uint8_t cmd[2] = { PN5180_RF_ON, 0x00 };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(cmd, 2);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
-  while (0 == (TX_RFON_IRQ_STAT & getIRQStatus())); // wait for RF field to set up
+  // wait for RF field to set up
+  if (!waitForIRQState(10, TX_RFON_IRQ_STAT)) { ESP_LOGE(TAG, "Failed to wait for RF to turn on"); return false; }
+  
   clearIRQStatus(TX_RFON_IRQ_STAT);
   return true;
 }
@@ -337,12 +365,32 @@ bool PN5180::setRF_off() {
 
   uint8_t cmd[2] { PN5180_RF_OFF, 0x00 };
 
-  SPI.beginTransaction(PN5180_SPI_SETTINGS);
+  this->SPIDevice_->enable();
   transceiveCommand(cmd, 2);
-  SPI.endTransaction();
+  this->SPIDevice_->disable();
 
-  while (0 == (TX_RFOFF_IRQ_STAT & getIRQStatus())); // wait for RF field to shut down
+  // wait for RF field to shut down
+  if (!waitForIRQState(10, TX_RFOFF_IRQ_STAT)) { ESP_LOGE(TAG, "Failed to wait for RF to turn off"); return false; }
+  
   clearIRQStatus(TX_RFOFF_IRQ_STAT);
+  return true;
+}
+
+bool PN5180::waitForPinState (uint8_t maxWaitTimeMs, GPIOPin *pin, bool state) {
+  uint32_t startTime = millis();
+  while (millis() - startTime < maxWaitTimeMs && state != pin->digital_read()) delay(1);
+  if (state != pin->digital_read()) return false;
+  return true;
+}
+
+bool PN5180::waitForIRQState (uint8_t maxWaitTimeMs, uint32_t IRQState) {
+  uint32_t startTime = millis();
+  uint32_t currentIRQState = getIRQStatus();
+  while ((millis() - startTime < maxWaitTimeMs && 0 == (IRQState & currentIRQState)) && 0 == (IRQ_READ_ERROR_IRQ_STAT & currentIRQState)) {
+      delay(1);
+      currentIRQState = getIRQStatus();
+  }
+  if (0 == (IRQState & currentIRQState) || 0 != (IRQ_READ_ERROR_IRQ_STAT & currentIRQState)) return false;
   return true;
 }
 
@@ -387,25 +435,19 @@ status register contain information on the exception.
 bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer, size_t recvBufferLen) {
   ESP_LOGD(TAG, "Sending SPI frame: %s", getFormattedHexString(" ", sendBufferLen, sendBuffer).c_str());
   // 0.
-  auto wait = 10;
-  while (wait-- && LOW != digitalRead(PN5180_BUSY)) delay(1); // wait until busy is low
-  if (LOW != digitalRead(PN5180_BUSY)) { ESP_LOGE(TAG, "Failed to wait for PN5180_BUSY pin to get low"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, LOW)) { ESP_LOGE(TAG, "Step 0 - Failed to wait for BUSY_ pin to get low"); return false; }
   // 1.
-  digitalWrite(PN5180_NSS, LOW); delay(2);
+  this->NSS_->digital_write(LOW);
+  delay(2);
   // 2.
-  for (uint8_t i=0; i<sendBufferLen; i++) {
-    SPI.transfer(sendBuffer[i]);
-  }
+  this->SPIDevice_->write_array(sendBuffer, sendBufferLen);
   // 3.
-  wait = 10;
-  while(wait-- && HIGH != digitalRead(PN5180_BUSY)) delay(1);  // wait until BUSY is high
-  if (HIGH != digitalRead(PN5180_BUSY)) { ESP_LOGE(TAG, "Failed to wait for PN5180_BUSY pin to get high"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, HIGH)) { ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high"); return false; }
   // 4.
-  digitalWrite(PN5180_NSS, HIGH); delay(1);
+  this->NSS_->digital_write(HIGH);
+  delay(1);
   // 5.
-  wait = 10;
-  while (wait-- && LOW != digitalRead(PN5180_BUSY)) delay(1); // wait unitl BUSY is low
-  if (LOW != digitalRead(PN5180_BUSY)) { ESP_LOGE(TAG, "Failed to wait for PN5180_BUSY pin to get low"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, LOW)) { ESP_LOGE(TAG, "Failed to wait for BUSY_ pin to get low"); return false; }
 
   // check, if write-only
   //
@@ -413,21 +455,19 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
   ESP_LOGD(TAG, "Receiving SPI frame...");
 
   // 1.
-  digitalWrite(PN5180_NSS, LOW); delay(2);
+  this->NSS_->digital_write(LOW);
+  delay(2);
   // 2.
   for (uint8_t i=0; i<recvBufferLen; i++) {
-    recvBuffer[i] = SPI.transfer(0xff);
+    recvBuffer[i] = this->SPIDevice_->transfer_byte(0xff);
   }
   // 3.
-  wait = 10;
-  while (wait-- && HIGH != digitalRead(PN5180_BUSY));  // wait until BUSY is high
-  if (HIGH != digitalRead(PN5180_BUSY)) { ESP_LOGE(TAG, "Failed to wait for PN5180_BUSY pin to get high"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, HIGH)) { ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high"); return false; }
   // 4.
-  digitalWrite(PN5180_NSS, HIGH); delay(1);
+  this->NSS_->digital_write(HIGH);
+  delay(1);
   // 5.
-  wait = 10;
-  while (wait-- && LOW != digitalRead(PN5180_BUSY));  // wait until BUSY is low
-  if (LOW != digitalRead(PN5180_BUSY)) { ESP_LOGE(TAG, "Failed to wait for PN5180_BUSY pin to get high"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, LOW)) { ESP_LOGE(TAG, "Step 5 - Failed to wait for BUSY_ pin to get high"); return false; }
 
   ESP_LOGD(TAG, "Received SPI frame: %s", getFormattedHexString(" ", recvBufferLen, recvBuffer).c_str());
 
@@ -437,15 +477,18 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
 /*
  * Reset NFC device
  */
-void PN5180::reset() {
-  digitalWrite(PN5180_RST, LOW);  // at least 10us required
-  delay(10);
-  digitalWrite(PN5180_RST, HIGH); // 2ms to ramp up required
-  delay(10);
+bool PN5180::reset() {
+  ESP_LOGD(TAG, "Resetting device...");
+  this->RST_->digital_write(LOW); // at least 10us required
+  delay(1);
+  this->RST_->digital_write(HIGH); // Table 138: 2.5ms to ramp up required
+  delay(3);
 
-  while (0 == (IDLE_IRQ_STAT & getIRQStatus())); // wait for system to start up
+  if (!waitForIRQState(10, IDLE_IRQ_STAT)) { ESP_LOGE(TAG, "Reset failed"); return false; }
 
   clearIRQStatus(0xffffffff); // clear all flags
+  
+  return true;
 }
 
 /**
@@ -456,8 +499,12 @@ uint32_t PN5180::getIRQStatus() {
   ESP_LOGD(TAG, "Read IRQ-Status register...");
 
   uint32_t irqStatus;
-  readRegister(IRQ_STATUS, &irqStatus);
+  bool success = readRegister(IRQ_STATUS, &irqStatus);
 
+  if (!success) {
+      ESP_LOGE(TAG, "Read IRQ-Status register failed");
+      return IRQ_READ_ERROR_IRQ_STAT;
+  }
   this->printIRQStatus(irqStatus);
 
   return irqStatus;
@@ -499,10 +546,6 @@ void PN5180::printIRQStatus(uint32_t irqStatus) {
 /*
  * Get TRANSCEIVE_STATE from RF_STATUS register
  */
-#ifdef DEBUG
-extern void showIRQStatus(uint32_t);
-#endif
-
 PN5180TransceiveStat PN5180::getTransceiveState() {
   ESP_LOGD(TAG, "Get Transceive state...");
 
@@ -529,3 +572,4 @@ PN5180TransceiveStat PN5180::getTransceiveState() {
 
   return PN5180TransceiveStat(state);
 }
+} //esphome

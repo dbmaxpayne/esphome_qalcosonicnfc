@@ -20,7 +20,8 @@
 #include <inttypes.h>
 #include "PN5180Debug.h"
 #include <string>
-#include <Arduino.h>
+//#include <Arduino.h>
+#include <cstring>
 #include "esphome/core/log.h"
 
 std::string getFormattedHexString(const char* separator, uint8_t bufLen, uint8_t *bufPointer)
@@ -40,7 +41,7 @@ std::string printDataString(uint8_t bufLen, uint8_t *bufPointer)
   {
   char logBuf[bufLen + 1];
   for (size_t i = 0; i < bufLen; i++) {
-      if (isPrintable(bufPointer[i])) {
+      if (isprint(bufPointer[i])) {
         snprintf(logBuf + i, 2, "%c", bufPointer[i]);
       }
       else snprintf(logBuf + i, 2, "%s", ".");

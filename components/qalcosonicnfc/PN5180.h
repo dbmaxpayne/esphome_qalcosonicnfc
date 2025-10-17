@@ -20,7 +20,12 @@
 #ifndef PN5180_H
 #define PN5180_H
 
-#include <SPI.h>
+#include "esphome/components/spi/spi.h"
+
+namespace esphome {
+
+#define LOW  false
+#define HIGH true
 
 // PN5180 Registers
 #define SYSTEM_CONFIG       (0x00)
@@ -46,37 +51,45 @@
 #define IRQ_PIN_CONFIG      (0x1A)
 
 enum PN5180TransceiveStat {
-  PN5180_TS_Idle = 0,
+  PN5180_TS_Idle         = 0,
   PN5180_TS_WaitTransmit = 1,
   PN5180_TS_Transmitting = 2,
-  PN5180_TS_WaitReceive = 3,
-  PN5180_TS_WaitForData = 4,
-  PN5180_TS_Receiving = 5,
-  PN5180_TS_LoopBack = 6,
-  PN5180_TS_RESERVED = 7
+  PN5180_TS_WaitReceive  = 3,
+  PN5180_TS_WaitForData  = 4,
+  PN5180_TS_Receiving    = 5,
+  PN5180_TS_LoopBack     = 6,
+  PN5180_TS_RESERVED     = 7
 };
 
 // PN5180 IRQ_STATUS
-#define RX_IRQ_STAT         (1<<0)  // End of RF rececption IRQ
-#define TX_IRQ_STAT         (1<<1)  // End of RF transmission IRQ
-#define IDLE_IRQ_STAT       (1<<2)  // IDLE IRQ
-#define RFOFF_DET_IRQ_STAT  (1<<6)  // RF Field OFF detection IRQ
-#define RFON_DET_IRQ_STAT   (1<<7)  // RF Field ON detection IRQ
-#define TX_RFOFF_IRQ_STAT   (1<<8)  // RF Field OFF in PCD IRQ
-#define TX_RFON_IRQ_STAT    (1<<9)  // RF Field ON in PCD IRQ
-#define RX_SOF_DET_IRQ_STAT (1<<14) // RF SOF Detection IRQ
+#define RX_IRQ_STAT               (1<<0)  // End of RF rececption IRQ
+#define TX_IRQ_STAT               (1<<1)  // End of RF transmission IRQ
+#define IDLE_IRQ_STAT             (1<<2)  // IDLE IRQ
+#define RFOFF_DET_IRQ_STAT        (1<<6)  // RF Field OFF detection IRQ
+#define RFON_DET_IRQ_STAT         (1<<7)  // RF Field ON detection IRQ
+#define TX_RFOFF_IRQ_STAT         (1<<8)  // RF Field OFF in PCD IRQ
+#define TX_RFON_IRQ_STAT          (1<<9)  // RF Field ON in PCD IRQ
+#define RX_SOF_DET_IRQ_STAT       (1<<14) // RF SOF Detection IRQ
+#define IRQ_READ_ERROR_IRQ_STAT   (1<<31) // IRQ status could not be retrieved
 
 class PN5180 {
 private:
-  uint8_t PN5180_NSS;   // active low
-  uint8_t PN5180_BUSY;
-  uint8_t PN5180_RST;
+  GPIOPin *MOSI_;
+  GPIOPin *MISO_;
+  GPIOPin *SCK_;
+  GPIOPin *NSS_;   // active low
+  GPIOPin *BUSY_;
+  GPIOPin *RST_;
 
-  SPISettings PN5180_SPI_SETTINGS;
+  //SPISettings PN5180_SPI_SETTINGS;
+  //esphome::spi::SPIDevice<esphome::spi::BIT_ORDER_MSB_FIRST, esphome::spi::CLOCK_POLARITY_LOW, esphome::spi::CLOCK_PHASE_LEADING, 7000000> spiDev;
   static uint8_t readBuffer[508];
+  spi::SPIComponent *SPIComponent_;
+  spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
+                                     spi::DATA_RATE_5MHZ> *SPIDevice_;
 
 public:
-  PN5180(uint8_t SSpin, uint8_t BUSYpin, uint8_t RSTpin);
+  PN5180(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
 
   void begin();
   void end();
@@ -96,7 +109,7 @@ public:
   bool readRegister(uint8_t reg, uint32_t *value);
 
   /* cmd 0x07 */
-  bool readEEprom(uint8_t addr, uint8_t *buffer, int len);
+  bool readEEprom(uint8_t addr, uint8_t *buffer, uint8_t len);
 
   /* cmd 0x09 */
   bool sendData(uint8_t *data, int len, uint8_t validBits = 0);
@@ -115,7 +128,9 @@ public:
    * Helper functions
    */
 public:
-  void reset();
+  bool reset();
+  bool waitForPinState (uint8_t maxWaitTimeMs, GPIOPin *pin, bool state);
+  bool waitForIRQState (uint8_t maxWaitTimeMs, uint32_t IRQState);
 
   uint32_t getIRQStatus();
   bool clearIRQStatus(uint32_t irqMask);
@@ -130,5 +145,7 @@ private:
   bool transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_t *recvBuffer = 0, size_t recvBufferLen = 0);
 
 };
+
+} //esphome
 
 #endif /* PN5180_H */

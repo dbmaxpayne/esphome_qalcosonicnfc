@@ -18,8 +18,6 @@
 //
 #pragma once
 
-#ifdef USE_ARDUINO
-
 #include "esphome/core/component.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -52,19 +50,22 @@
 #define ST25_FIELD_ON            (4)    // Is RF field detected
 #define ST25_VCC_ON              (8)
 
-#define QALCOSONIC_CMD_TERMINATOR (0x16)
+#define MBUS_LONG_FRAME_START             (0x68)
+#define MBUS_LONG_FRAME_ADDITIONAL_BYTES  (0x06) // Start + Len + Len + Start + CRC + Terminator
+#define MBUS_SHORT_FRAME_START            (0x10)
+#define MBUS_FRAME_TERMINATOR             (0x16)
 
 namespace esphome {
 namespace qalcosonicnfc {
 
 class QalcosonicNfc : public esphome::PollingComponent {
  protected:
-  InternalGPIOPin *MOSI_;
-  InternalGPIOPin *MISO_;
-  InternalGPIOPin *SCK_;
-  InternalGPIOPin *NSS_;
-  InternalGPIOPin *BUSY_;
-  InternalGPIOPin *RST_;
+  GPIOPin *MOSI_;
+  GPIOPin *MISO_;
+  GPIOPin *SCK_;
+  GPIOPin *NSS_;
+  GPIOPin *BUSY_;
+  GPIOPin *RST_;
   PN5180ISO15693* nfc_;
   bool errorFlag;
   uint8_t meterUid[8];
@@ -79,12 +80,19 @@ class QalcosonicNfc : public esphome::PollingComponent {
   bool st25GetMessageLength();
   bool st25GetMessage();
   bool issueMeterCommand(uint8_t *qalcosonicCmd, uint8_t qalcosonicCmdLen);
+  bool validateMbusFrame();
   sensor::Sensor *water_usage_sensor_{nullptr};
+  sensor::Sensor *water_flow_sensor_{nullptr};
+  sensor::Sensor *water_temperature_sensor_{nullptr};
+  sensor::Sensor *battery_level_sensor_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
 
  public:
-  QalcosonicNfc(InternalGPIOPin *pn5180_mosi_pin, InternalGPIOPin *pn5180_miso_pin, InternalGPIOPin *pn5180_sck_pin, InternalGPIOPin *pn5180_nss_pin, InternalGPIOPin *pn5180_busy_pin, InternalGPIOPin *pn5180_rst_pin);
+  QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
   void set_water_usage_sensor(sensor::Sensor *water_usage_sensor) { water_usage_sensor_ = water_usage_sensor; }
+  void set_water_flow_sensor(sensor::Sensor *water_flow_sensor) { water_flow_sensor_ = water_flow_sensor; }
+  void set_water_temperature_sensor(sensor::Sensor *water_temperature_sensor) { water_temperature_sensor_ = water_temperature_sensor; }
+  void set_battery_level_sensor(sensor::Sensor *battery_level_sensor) { battery_level_sensor_ = battery_level_sensor; }
   void set_raw_data_sensor(text_sensor::TextSensor *raw_data_sensor) { raw_data_sensor_ = raw_data_sensor; }
   void setup() override;
   void loop() override;
@@ -95,5 +103,3 @@ class QalcosonicNfc : public esphome::PollingComponent {
 
 }  // namespace qalcosonicnfc
 }  // namespace esphome
-
-#endif
