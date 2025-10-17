@@ -44,19 +44,25 @@ esp32:
 
 qalcosonicnfc:
   update_interval: 60s # How often should the component query the water meter for a value. I am not sure how this affects its battery life!
-  pn5180_mosi_pin: GPIO23 # Currently ignored, uses default pin
-  pn5180_miso_pin: GPIO19 # Currently ignored, uses default pin
-  pn5180_sck_pin: GPIO18 # Currently ignored, uses default pin
-  pn5180_nss_pin: GPIO14
+  pn5180_mosi_pin: GPIO23
+  pn5180_miso_pin: GPIO19
+  pn5180_sck_pin:  GPIO18
+  pn5180_nss_pin:  GPIO14
   pn5180_busy_pin: GPIO16
-  pn5180_rst_pin: GPIO17
+  pn5180_rst_pin:  GPIO17
   water_usage_sensor:
     name: "Wasserverbrauch"
+  water_flow_sensor:
+    name: "Wasserdurchfluss"
+  water_temperature_sensor:
+    name: "Wassertemperatur"
+  battery_level_sensor:
+    name: "Batteriestand" # Unsure if working
   # This sensor allows me to maybe find more useful data in the future.
   # You should not need it and can disable it.
   raw_data_sensor:
-    name: "Rohdaten"
-    disabled_by_default: true
+    name: "M-BUS Rohdaten"
+    disabled_by_default: True
 
 # Enable logging
 logger:
