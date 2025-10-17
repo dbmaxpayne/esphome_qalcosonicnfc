@@ -263,7 +263,7 @@ void QalcosonicNfc::update() {
   
   uint16_t waterFlow = uint16_t((unsigned char)(this->readBuffer[68]) << 8 |
                                 (unsigned char)(this->readBuffer[67]));
-  ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterFlow, waterFlow/1000.0f);
+  ESP_LOGI(TAG, "Water Flow: %uL / %9.3fm3", waterFlow, waterFlow/1000.0f);
   
   uint16_t flowTemperature = uint16_t((unsigned char)(this->readBuffer[72]) << 8 |
                                       (unsigned char)(this->readBuffer[71]));
