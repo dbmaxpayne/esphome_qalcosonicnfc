@@ -36,6 +36,7 @@ QalcosonicNfc::QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin
     this->NSS_ = nss;
     this->BUSY_ = busy;
     this->RST_ = rst;
+    this->errorCount = 0;
 
     nfc_ = new PN5180ISO15693(this->MOSI_, this->MISO_, this->SCK_, this->NSS_, this->BUSY_, this->RST_);
 }
@@ -190,7 +191,8 @@ void QalcosonicNfc::update() {
   if (!this->nfc_->setupRF()) return;
   
   if (this->errorFlag) {
-    ESP_LOGD(TAG, "Error flag is set.");
+    this->errorCount++;
+    ESP_LOGD(TAG, "Error flag is set. Consecutive errors: %u", this->errorCount);
     uint32_t irqStatus = this->nfc_->getIRQStatus();
     this->nfc_->printIRQStatus(irqStatus);
 
@@ -198,10 +200,16 @@ void QalcosonicNfc::update() {
       ESP_LOGI(TAG, "*** Water meter not found or did not reply!");
     }
     
+    if (this->errorCount > 5) publishSensorsAsFailed();
+    
     if (!this->nfc_->reset()) return;
     if (!this->nfc_->setupRF()) return;
 
     this->errorFlag = false;
+  }
+  else {
+      this->errorCount = 0;
+      this->status_clear_error();
   }
   
   ESP_LOGI(TAG, "Scanning for water meter...");
@@ -254,34 +262,48 @@ void QalcosonicNfc::update() {
       return;
     }
    
-   // Generate the final measurements from the returned buffer
-   uint32_t waterUsage = uint32_t((unsigned char)(this->readBuffer[57]) << 24 |
-                                  (unsigned char)(this->readBuffer[56]) << 16 |
-                                  (unsigned char)(this->readBuffer[55]) << 8 |
-                                  (unsigned char)(this->readBuffer[54]));
-  ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterUsage, waterUsage/1000.0f);
-  
-  uint16_t waterFlow = uint16_t((unsigned char)(this->readBuffer[68]) << 8 |
-                                (unsigned char)(this->readBuffer[67]));
-  ESP_LOGI(TAG, "Water Flow: %uL / %9.3fm3", waterFlow, waterFlow/1000.0f);
-  
-  uint16_t flowTemperature = uint16_t((unsigned char)(this->readBuffer[72]) << 8 |
-                                      (unsigned char)(this->readBuffer[71]));
-  ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
-  
-  uint8_t batteryPercentage = this->readBuffer[85];
-  ESP_LOGI(TAG, "Battery Percentage: %u", batteryPercentage);
-  
-  this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
-  this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
-  this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
-  this->battery_level_sensor_->publish_state(batteryPercentage);
-  this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
+   this->publishSensors();
+   
   
   this->nfc_->setRF_off();
   this->nfc_->printIRQStatus(this->nfc_->getIRQStatus());
   
   ESP_LOGD(TAG, "Update cycle finished");
+}
+
+void QalcosonicNfc::publishSensors() {
+    // Generate the final measurements from the returned buffer
+    uint32_t waterUsage = uint32_t((unsigned char)(this->readBuffer[57]) << 24 |
+                                   (unsigned char)(this->readBuffer[56]) << 16 |
+                                   (unsigned char)(this->readBuffer[55]) << 8 |
+                                   (unsigned char)(this->readBuffer[54]));
+    ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterUsage, waterUsage/1000.0f);
+
+    int16_t waterFlow = int16_t((unsigned char)(this->readBuffer[68]) << 8 |
+                                (unsigned char)(this->readBuffer[67]));
+    ESP_LOGI(TAG, "Water Flow: %iL / %9.3fm3", waterFlow, waterFlow/1000.0f);
+
+    uint16_t flowTemperature = uint16_t((unsigned char)(this->readBuffer[72]) << 8 |
+                                        (unsigned char)(this->readBuffer[71]));
+    ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
+
+    uint8_t batteryPercentage = this->readBuffer[85];
+    ESP_LOGI(TAG, "Battery Percentage: %u", batteryPercentage);
+
+    this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
+    this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
+    this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
+    this->battery_level_sensor_->publish_state(batteryPercentage);
+    this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
+}
+
+void QalcosonicNfc::publishSensorsAsFailed() {
+    this->water_usage_sensor_->publish_state(NAN);
+    this->water_flow_sensor_->publish_state(NAN);
+    this->water_temperature_sensor_->publish_state(NAN);
+    this->battery_level_sensor_->publish_state(NAN);
+    //this->raw_data_sensor_->publish_state(NAN);
+    this->status_set_error();
 }
 
 bool QalcosonicNfc::validateMbusFrame() {
