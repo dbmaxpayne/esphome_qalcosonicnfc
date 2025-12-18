@@ -68,6 +68,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   GPIOPin *RST_;
   PN5180ISO15693* nfc_;
   bool errorFlag;
+  uint8_t errorCount;
   uint8_t meterUid[8];
   uint8_t *readBuffer; // Buffer for any data that is received
   uint16_t responseLength; // Stores the actual length of the received data
@@ -86,6 +87,8 @@ class QalcosonicNfc : public esphome::PollingComponent {
   sensor::Sensor *water_temperature_sensor_{nullptr};
   sensor::Sensor *battery_level_sensor_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
+  void publishSensors();
+  void publishSensorsAsFailed();
 
  public:
   QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
