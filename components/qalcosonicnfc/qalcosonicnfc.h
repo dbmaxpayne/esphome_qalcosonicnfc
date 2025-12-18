@@ -83,9 +83,13 @@ class QalcosonicNfc : public esphome::PollingComponent {
   bool issueMeterCommand(uint8_t *qalcosonicCmd, uint8_t qalcosonicCmdLen);
   bool validateMbusFrame();
   sensor::Sensor *water_usage_sensor_{nullptr};
+  sensor::Sensor *water_usage_positive_sensor_{nullptr};
+  sensor::Sensor *water_usage_negative_sensor_{nullptr};
   sensor::Sensor *water_flow_sensor_{nullptr};
   sensor::Sensor *water_temperature_sensor_{nullptr};
+  sensor::Sensor *external_temperature_sensor_{nullptr};
   sensor::Sensor *battery_level_sensor_{nullptr};
+  text_sensor::TextSensor *timepoint_sensor_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
   void publishSensors();
   void publishSensorsAsFailed();
@@ -93,9 +97,13 @@ class QalcosonicNfc : public esphome::PollingComponent {
  public:
   QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
   void set_water_usage_sensor(sensor::Sensor *water_usage_sensor) { water_usage_sensor_ = water_usage_sensor; }
+  void set_water_usage_positive_sensor(sensor::Sensor *water_usage_positive_sensor) { water_usage_positive_sensor_ = water_usage_positive_sensor; }
+  void set_water_usage_negative_sensor(sensor::Sensor *water_usage_negative_sensor) { water_usage_negative_sensor_ = water_usage_negative_sensor; }
   void set_water_flow_sensor(sensor::Sensor *water_flow_sensor) { water_flow_sensor_ = water_flow_sensor; }
   void set_water_temperature_sensor(sensor::Sensor *water_temperature_sensor) { water_temperature_sensor_ = water_temperature_sensor; }
+  void set_external_temperature_sensor(sensor::Sensor *external_temperature_sensor) { external_temperature_sensor_ = external_temperature_sensor; }
   void set_battery_level_sensor(sensor::Sensor *battery_level_sensor) { battery_level_sensor_ = battery_level_sensor; }
+  void set_timepoint_sensor(text_sensor::TextSensor *timepoint_sensor) { timepoint_sensor_ = timepoint_sensor; }
   void set_raw_data_sensor(text_sensor::TextSensor *raw_data_sensor) { raw_data_sensor_ = raw_data_sensor; }
   void setup() override;
   void loop() override;

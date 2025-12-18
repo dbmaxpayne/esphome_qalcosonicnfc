@@ -285,30 +285,63 @@ void QalcosonicNfc::publishSensors() {
         {
             case 0x1300:
                 {
-                    uint32_t waterUsage = uint32_t((unsigned char)(buf[3]) << 24 |
-                                                   (unsigned char)(buf[2]) << 16 |
-                                                   (unsigned char)(buf[1]) << 8 |
-                                                   (unsigned char)(buf[0]));
-                    ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterUsage, waterUsage/1000.0f);
+                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "Water Usage: %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
                     this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
+                    break;
+                }
+
+            case 0x933b:
+                {
+                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "Water Usage (Only Positive): %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
+                    this->water_usage_positive_sensor_->publish_state(waterUsage/1000.0f);
+                    break;
+                }
+
+            case 0x933c:
+                {
+                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "Water Usage (Only Negative): %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
+                    this->water_usage_negative_sensor_->publish_state(waterUsage/1000.0f);
                     break;
                 }
 
             case 0x3b00:
                 {
-                    int16_t waterFlow = int16_t((unsigned char)(buf[1]) << 8 |
-                                                (unsigned char)(buf[0]));
-                    ESP_LOGI(TAG, "Water Flow: %iL / %9.3fm3", waterFlow, waterFlow/1000.0f);
+                    int16_t waterFlow = int16_t(buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "Water Flow: %iL / %1.3fm3", waterFlow, waterFlow/1000.0f);
                     this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
                     break;
                 }
 
             case 0x5900:
                 {
-                    uint16_t flowTemperature = uint16_t((unsigned char)(buf[1]) << 8 |
-                                                        (unsigned char)(buf[0]));
+                    int16_t flowTemperature = int16_t(buf[1] << 8 | buf[0]);
                     ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
                     this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
+                    break;
+                }
+
+            case 0x6600:
+                {
+                    int16_t externalTemperature = int16_t(buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "External Temperature: %2.1f°C", externalTemperature/10.0f);
+                    this->external_temperature_sensor_->publish_state(externalTemperature/10.0f);
+                    break;
+                }
+
+            case 0x6d00:
+                {
+                    int32_t minute = buf[0] & 0x3F;
+                    int32_t hour = buf[1] & 0x1F;
+                    int32_t day = buf[2] & 0x1F;
+                    int32_t month = buf[3] & 0x0F;
+                    int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
+                    ESP_LOGI(TAG, "Timepoint: %04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
+                    char str_timepoint[17];  // e. g. 2025-12-18 21:33
+                    snprintf(str_timepoint, sizeof(str_timepoint), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
+                    this->timepoint_sensor_->publish_state(str_timepoint);
                     break;
                 }
 
