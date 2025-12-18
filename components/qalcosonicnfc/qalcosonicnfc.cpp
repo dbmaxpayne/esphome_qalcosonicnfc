@@ -273,27 +273,58 @@ void QalcosonicNfc::update() {
 
 void QalcosonicNfc::publishSensors() {
     // Generate the final measurements from the returned buffer
-    uint32_t waterUsage = uint32_t((unsigned char)(this->readBuffer[57]) << 24 |
-                                   (unsigned char)(this->readBuffer[56]) << 16 |
-                                   (unsigned char)(this->readBuffer[55]) << 8 |
-                                   (unsigned char)(this->readBuffer[54]));
-    ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterUsage, waterUsage/1000.0f);
+    for (uint8_t *buf = this->readBuffer + 20; buf < this->readBuffer + responseLength;)
+    {
+        uint32_t dif = *buf++;
+        while (buf[-1] & 0x80) buf++; // skip all DIF extension bytes
+        uint8_t vif = *buf++;
+        uint8_t vife = vif & 0x80 ? *buf++ : 0;
+        while (buf[-1] & 0x80) buf++; // skip further VIF extension bytes (we need only the first one)
+        ESP_LOGD(TAG, "DIF:%02x VIF:%02x VIFE:%02x", dif, vif, vife);
+        switch (vif << 8 | vife) 
+        {
+            case 0x1300:
+                {
+                    uint32_t waterUsage = uint32_t((unsigned char)(buf[3]) << 24 |
+                                                   (unsigned char)(buf[2]) << 16 |
+                                                   (unsigned char)(buf[1]) << 8 |
+                                                   (unsigned char)(buf[0]));
+                    ESP_LOGI(TAG, "Water Usage: %uL / %9.3fm3", waterUsage, waterUsage/1000.0f);
+                    this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
+                    break;
+                }
 
-    int16_t waterFlow = int16_t((unsigned char)(this->readBuffer[68]) << 8 |
-                                (unsigned char)(this->readBuffer[67]));
-    ESP_LOGI(TAG, "Water Flow: %iL / %9.3fm3", waterFlow, waterFlow/1000.0f);
+            case 0x3b00:
+                {
+                    int16_t waterFlow = int16_t((unsigned char)(buf[1]) << 8 |
+                                                (unsigned char)(buf[0]));
+                    ESP_LOGI(TAG, "Water Flow: %iL / %9.3fm3", waterFlow, waterFlow/1000.0f);
+                    this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
+                    break;
+                }
 
-    uint16_t flowTemperature = uint16_t((unsigned char)(this->readBuffer[72]) << 8 |
-                                        (unsigned char)(this->readBuffer[71]));
-    ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
+            case 0x5900:
+                {
+                    uint16_t flowTemperature = uint16_t((unsigned char)(buf[1]) << 8 |
+                                                        (unsigned char)(buf[0]));
+                    ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
+                    this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
+                    break;
+                }
 
-    uint8_t batteryPercentage = this->readBuffer[85];
-    ESP_LOGI(TAG, "Battery Percentage: %u", batteryPercentage);
+            case 0xfd74:
+                {
+                    uint8_t batteryPercentage = buf[0];
+                    ESP_LOGI(TAG, "Battery Percentage: %u", batteryPercentage);
+                    this->battery_level_sensor_->publish_state(batteryPercentage);
+                    break;
+                }
+        }
 
-    this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
-    this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
-    this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
-    this->battery_level_sensor_->publish_state(batteryPercentage);
+        uint8_t data_size = dif & 0x0f;
+        buf += data_size;
+    }
+    
     this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
 }
 
