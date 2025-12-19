@@ -79,7 +79,7 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "Raw M-BUS Data",}): text_sensor.text_sensor_schema(),
-            cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint Sensor",}): text_sensor.text_sensor_schema(),
+            cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint",}): text_sensor.text_sensor_schema(),
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_SCK_PIN): pins.gpio_output_pin_schema,
