@@ -20,9 +20,13 @@ CONF_PN5180_NSS_PIN = "pn5180_nss_pin"
 CONF_PN5180_BUSY_PIN = "pn5180_busy_pin"
 CONF_PN5180_RST_PIN = "pn5180_rst_pin"
 CONF_WATER_USAGE_SENSOR = "water_usage_sensor"
+CONF_WATER_USAGE_POSITIVE_SENSOR = "water_usage_positive_sensor"
+CONF_WATER_USAGE_NEGATIVE_SENSOR = "water_usage_negative_sensor"
 CONF_WATER_FLOW_SENSOR = "water_flow_sensor"
 CONF_WATER_TEMPERATURE_SENSOR = "water_temperature_sensor"
+CONF_EXTERNAL_TEMPERATURE_SENSOR = "external_temperature_sensor"
 CONF_BATTERY_LEVEL_SENSOR = "battery_level_sensor"
+CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
 
 qalcosonicnfc_ns = cg.esphome_ns.namespace("qalcosonicnfc")
@@ -34,6 +38,18 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(QalcosonicNfc),
             cv.Optional(CONF_UPDATE_INTERVAL, default="60s"): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_WATER_USAGE_SENSOR, default={ CONF_NAME: "Water Usage",}): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CUBIC_METER,
+                icon=ICON_WATER,
+                accuracy_decimals=3,
+                state_class=STATE_CLASS_TOTAL_INCREASING,
+                device_class=DEVICE_CLASS_WATER,),
+            cv.Optional(CONF_WATER_USAGE_POSITIVE_SENSOR, default={ CONF_NAME: "Water Usage Positive",}): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CUBIC_METER,
+                icon=ICON_WATER,
+                accuracy_decimals=3,
+                state_class=STATE_CLASS_TOTAL_INCREASING,
+                device_class=DEVICE_CLASS_WATER,),
+            cv.Optional(CONF_WATER_USAGE_NEGATIVE_SENSOR, default={ CONF_NAME: "Water Usage Negative",}): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CUBIC_METER,
                 icon=ICON_WATER,
                 accuracy_decimals=3,
@@ -51,12 +67,19 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=2,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_TEMPERATURE,),
+            cv.Optional(CONF_EXTERNAL_TEMPERATURE_SENSOR, default={ CONF_NAME: "External Temperature",}): sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                icon=ICON_THERMOMETER,
+                accuracy_decimals=2,
+                state_class=STATE_CLASS_MEASUREMENT,
+                device_class=DEVICE_CLASS_TEMPERATURE,),
             cv.Optional(CONF_BATTERY_LEVEL_SENSOR, default={ CONF_NAME: "Battery Level",}): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PERCENT,
                 icon=ICON_BATTERY,
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "Raw M-BUS Data",}): text_sensor.text_sensor_schema(),
+            cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint",}): text_sensor.text_sensor_schema(),
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_SCK_PIN): pins.gpio_output_pin_schema,
@@ -82,14 +105,26 @@ async def to_code(config):
     water_usage_sensor = await sensor.new_sensor(config.get(CONF_WATER_USAGE_SENSOR))
     cg.add(var.set_water_usage_sensor(water_usage_sensor))
     
+    water_usage_positive_sensor = await sensor.new_sensor(config.get(CONF_WATER_USAGE_POSITIVE_SENSOR))
+    cg.add(var.set_water_usage_positive_sensor(water_usage_positive_sensor))
+
+    water_usage_negative_sensor = await sensor.new_sensor(config.get(CONF_WATER_USAGE_NEGATIVE_SENSOR))
+    cg.add(var.set_water_usage_negative_sensor(water_usage_negative_sensor))
+
     water_flow_sensor = await sensor.new_sensor(config.get(CONF_WATER_FLOW_SENSOR))
     cg.add(var.set_water_flow_sensor(water_flow_sensor))
     
     water_temperature_sensor = await sensor.new_sensor(config.get(CONF_WATER_TEMPERATURE_SENSOR))
     cg.add(var.set_water_temperature_sensor(water_temperature_sensor))
     
+    external_temperature_sensor = await sensor.new_sensor(config.get(CONF_EXTERNAL_TEMPERATURE_SENSOR))
+    cg.add(var.set_external_temperature_sensor(external_temperature_sensor))
+
     battery_level_sensor = await sensor.new_sensor(config.get(CONF_BATTERY_LEVEL_SENSOR))
     cg.add(var.set_battery_level_sensor(battery_level_sensor))
+    
+    timepoint_sensor = await text_sensor.new_text_sensor(config.get(CONF_TIMEPOINT_SENSOR))
+    cg.add(var.set_timepoint_sensor(timepoint_sensor))
     
     raw_data_sensor = await text_sensor.new_text_sensor(config.get(CONF_RAW_DATA_SENSOR))
     cg.add(var.set_raw_data_sensor(raw_data_sensor))
