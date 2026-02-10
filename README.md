@@ -23,14 +23,21 @@ ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 N
 ## Special Thanks
 Special thanks goes to @ATrappmann for his PN5180-Library (https://github.com/ATrappmann/PN5180-Library).
 Without his work, this project would not have been possible.
+Also I thank everyone who has contributed to this repository for their work.
 
 ## Example configuration
 ```
 external_components:
   - source:
-      type: local
-      path: my_components
+      type: git
+      url: https://github.com/dbmaxpayne/esphome_qalcosonicnfc
+      #ref: refs/pull/5/head # Uncomment to test an active pull request 
+  #- source:
+  #    type: local
+  #    path: my_components
     components: [ qalcosonicnfc ]
+    #refresh: 1min # Refresh interval. Leave this commented if you're not testing any new pull requests
+  
 
 esphome:
   name: qalcosonic-w1-nfc-reader
@@ -43,7 +50,9 @@ esp32:
     type: arduino
 
 qalcosonicnfc:
-  update_interval: 60s # How often should the component query the water meter for a value. I am not sure how this affects its battery life!
+  update_interval: 300s # How often should the component query the water meter for a value.
+                        # Battery drain:
+                        # 60s: ~ 1% per 75 days (added 10.02.2026, tested by dbmaxpayne)
   pn5180_mosi_pin: GPIO23
   pn5180_miso_pin: GPIO19
   pn5180_sck_pin:  GPIO18
@@ -65,9 +74,10 @@ qalcosonicnfc:
   external_temperature_sensor:
     name: "External Temperature"
   battery_level_sensor:
-    name: "Batteriestand" # Unsure if working
+    name: "Batteriestand"
   timepoint_sensor:
     name: "Timepoint"
+    disabled_by_default: True
   # This sensor allows me to maybe find more useful data in the future.
   # You should not need it and can disable it.
   raw_data_sensor:
