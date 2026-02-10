@@ -52,12 +52,22 @@ qalcosonicnfc:
   pn5180_rst_pin:  GPIO17
   water_usage_sensor:
     name: "Wasserverbrauch"
+  water_usage_positive_sensor:
+    name: "Volume (Only Positive)"
+    disabled_by_default: True
+  water_usage_negative_sensor:
+    name: "Volume (Only Negative)"
+    disabled_by_default: True
   water_flow_sensor:
     name: "Wasserdurchfluss"
   water_temperature_sensor:
     name: "Wassertemperatur"
+  external_temperature_sensor:
+    name: "External Temperature"
   battery_level_sensor:
     name: "Batteriestand" # Unsure if working
+  timepoint_sensor:
+    name: "Timepoint"
   # This sensor allows me to maybe find more useful data in the future.
   # You should not need it and can disable it.
   raw_data_sensor:
