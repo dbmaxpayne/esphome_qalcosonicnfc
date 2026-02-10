@@ -47,9 +47,16 @@ esp32:
   #board: esp32-c3-devkitm-1
   board: esp32dev
   framework:
-    type: arduino
+    type: esp-idf # You can use arduino, too
+
+button:
+  - platform: template
+    name: "Force Sensor Update"
+    on_press:
+      - component.update: qalcosonicnfc_id
 
 qalcosonicnfc:
+  id: qalcosonicnfc_id # ID used for the manual update button
   update_interval: 300s # How often should the component query the water meter for a value.
                         # Battery drain:
                         # 60s: ~ 1% per 75 days (added 10.02.2026, tested by dbmaxpayne)
