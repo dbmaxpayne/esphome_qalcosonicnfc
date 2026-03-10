@@ -157,7 +157,7 @@ void QalcosonicNfc::setup() {
     
     this->nfc_->begin();
     if (!this->nfc_->reset()) {
-        mark_failed("No communication to PN5180");
+        mark_failed(LOG_STR("No communication to PN5180"));
         return;
     }
     
@@ -169,7 +169,7 @@ void QalcosonicNfc::setup() {
         ESP_LOGE(TAG, "Initialization failed! Marking as failed");
         //delay(1000);
         //esp_restart();
-        mark_failed("Incorrect PN5180 product version");
+        mark_failed(LOG_STR("Incorrect PN5180 product version"));
     }
     
     uint8_t firmwareVersion[2];
