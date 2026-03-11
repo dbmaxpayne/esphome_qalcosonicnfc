@@ -121,5 +121,29 @@ wifi:
 captive_portal:
 ```
 
+## Sensor Update Behavior (`force_update`)
+
+By default, ESPHome numeric sensors only push an update to Home Assistant **when the value changes**. This means if your
+water usage stays the same between two readout cycles, Home Assistant will not receive a new data point — which can make 
+it look like the sensor is stale or not working.
+
+To force a sensor to publish its value on **every readout cycle**, regardless of whether it changed, add `force_update: true` 
+to the sensor:
+
+```yaml
+qalcosonicnfc:
+  water_usage_sensor:
+    name: "Water Usage"
+    force_update: true
+  water_flow_sensor:
+    name: "Water Flow"
+    force_update: true
+  # ... and so on for any other sensor
+```
+
+This is especially useful for confirming the device is still alive and actively reading the meter.
+
+> **Note:** `force_update: true` applies to numeric `sensor` types only. It does **not** apply to `text_sensor` types (e.g. `timepoint_sensor`, `raw_data_sensor`).
+
 ## Images
 <img src="./media/esp32_pn5180_1.jpg" width="200" /> <img src="./media/esp32_pn5180_2.jpg" width="200" /> <img src="./media/esp32_pn5180_3.jpg" width="200" />
