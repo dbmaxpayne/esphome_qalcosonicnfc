@@ -18,6 +18,7 @@
 //
 #include "esphome/core/defines.h"
 #include "esphome/core/log.h"
+#include "esphome/core/application.h"
 #include "qalcosonicnfc.h"
 #include "PN5180ISO15693.h"
 #include "PN5180Debug.h"
@@ -212,6 +213,7 @@ void QalcosonicNfc::update() {
       this->status_clear_error();
   }
   
+  App.feed_wdt();
   ESP_LOGI(TAG, "Scanning for water meter...");
   ISO15693ErrorCode rc = this->nfc_->getInventory(this->meterUid);
   if (ISO15693_EC_OK != rc) {
@@ -238,6 +240,7 @@ void QalcosonicNfc::update() {
   }
   ESP_LOGD(TAG, "ST25: Energy harvesting state: EH_EN=%u, EH_ON=%u, FIELD_ON=%u, VCC_ON=%u", this->readBuffer[1] & ST25_EH_EN, (this->readBuffer[1] & ST25_EH_ON) >> 1, (readBuffer[1] & ST25_FIELD_ON) >> 2, (this->readBuffer[1] & ST25_VCC_ON) >> 3);
   
+  App.feed_wdt();
   if(!this->st25MailboxEnable()) {
       this->nfc_->setRF_off();
       return;
@@ -248,10 +251,12 @@ void QalcosonicNfc::update() {
    uint8_t commandResetApp[] = {0x10, 0x40, 0xFE};
    uint8_t commandGetData1[] = {0x10, 0x7B, 0xFE};
    
+   App.feed_wdt();
    if(!issueMeterCommand(commandResetApp, sizeof(commandResetApp)/sizeof(commandResetApp[0]))) {
       this->nfc_->setRF_off();
       return;
     }
+   App.feed_wdt();
    if(!issueMeterCommand(commandGetData1, sizeof(commandGetData1)/sizeof(commandGetData1[0]))) {
       this->nfc_->setRF_off();
       return;
