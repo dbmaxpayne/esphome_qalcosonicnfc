@@ -1,12 +1,12 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
-from esphome.components import sensor, text_sensor, binary_sensor#, spi
+from esphome.components import sensor, text_sensor#, spi
 from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY
 
 CODEOWNERS = ["@dbmaxpayne"]
 
-AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor", "spi"]
+AUTO_LOAD = ["sensor", "text_sensor", "spi"]
 
 DEPENDENCIES = ["network"]
 
@@ -28,7 +28,7 @@ CONF_EXTERNAL_TEMPERATURE_SENSOR = "external_temperature_sensor"
 CONF_BATTERY_LEVEL_SENSOR = "battery_level_sensor"
 CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
-CONF_READOUT_SUCCESS_SENSOR = "readout_success_sensor"
+CONF_CONSECUTIVE_ERRORS_SENSOR = "consecutive_errors_sensor"
 CONF_CONSECUTIVE_ERRORS_LIMIT = "consecutive_errors_limit"
 
 qalcosonicnfc_ns = cg.esphome_ns.namespace("qalcosonicnfc")
@@ -82,7 +82,10 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "Raw M-BUS Data",}): text_sensor.text_sensor_schema(),
             cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint",}): text_sensor.text_sensor_schema(),
-            cv.Optional(CONF_READOUT_SUCCESS_SENSOR, default={ CONF_NAME: "Readout Success",}): binary_sensor.binary_sensor_schema(),
+            cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR, default={ CONF_NAME: "Consecutive Errors",}): sensor.sensor_schema(
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend({cv.Optional("disabled_by_default", default=True): cv.boolean}),
             cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
@@ -133,7 +136,7 @@ async def to_code(config):
     raw_data_sensor = await text_sensor.new_text_sensor(config.get(CONF_RAW_DATA_SENSOR))
     cg.add(var.set_raw_data_sensor(raw_data_sensor))
 
-    readout_success_sensor = await binary_sensor.new_binary_sensor(config.get(CONF_READOUT_SUCCESS_SENSOR))
-    cg.add(var.set_readout_success_sensor(readout_success_sensor))
+    consecutive_errors_sensor = await sensor.new_sensor(config.get(CONF_CONSECUTIVE_ERRORS_SENSOR))
+    cg.add(var.set_consecutive_errors_sensor(consecutive_errors_sensor))
 
     cg.add(var.set_consecutive_errors_limit(config[CONF_CONSECUTIVE_ERRORS_LIMIT]))

@@ -93,11 +93,13 @@ qalcosonicnfc:
   raw_data_sensor:
     name: "M-BUS Rohdaten"
     disabled_by_default: True
-  # Binary sensor that indicates whether the last readout attempt succeeded (true) or failed (false).
-  # Use this sensor to get immediate feedback of a readout error even if consecutive_errors_limit is
-  # larger than 0 and the main sensors are not yet marked as unavailable.
-  readout_success_sensor:
-    name: "Readout Success"
+  # Sensor that indicates how many consecutive readout attempts have failed.
+  # It will be 0 on a successful readout and increment on each failure.
+  # Note: This value can exceed the consecutive_errors_limit, as the limit
+  # only defines when the main sensors are set to unavailable (NAN).
+  consecutive_errors_sensor:
+    name: "Consecutive Errors"
+    disabled_by_default: True
 
 # Enable logging
 logger:

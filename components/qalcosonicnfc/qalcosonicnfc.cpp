@@ -274,7 +274,7 @@ void QalcosonicNfc::update() {
     }
    
    this->errorCount = 0;
-   this->readout_success_sensor_->publish_state(true);
+   this->consecutive_errors_sensor_->publish_state(0);
    this->publishSensors();
    
   
@@ -387,7 +387,7 @@ void QalcosonicNfc::handleReadoutFailed() {
     this->errorFlag = true;
     this->errorCount++;
     ESP_LOGD(TAG, "Readout failed. Consecutive errors: %u", this->errorCount);
-    this->readout_success_sensor_->publish_state(false);
+    this->consecutive_errors_sensor_->publish_state(this->errorCount);
     if (this->consecutive_errors_limit_ > 0 && this->errorCount >= this->consecutive_errors_limit_) {
         this->publishSensorsAsFailed();
     }
