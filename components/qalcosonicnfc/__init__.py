@@ -85,7 +85,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR, default={ CONF_NAME: "Consecutive Errors",}): sensor.sensor_schema(
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
-            ).extend({cv.Optional("disabled_by_default", default=True): cv.boolean}),
+            ),
             cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
