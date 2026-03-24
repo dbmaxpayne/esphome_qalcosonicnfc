@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
 from esphome.components import sensor, text_sensor#, spi
-from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY
+from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_VOLUME_FLOW_RATE, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY
 
 CODEOWNERS = ["@dbmaxpayne"]
 
@@ -60,7 +60,7 @@ CONFIG_SCHEMA = (
                 icon=ICON_WATER,
                 accuracy_decimals=3,
                 state_class=STATE_CLASS_MEASUREMENT,
-                device_class=DEVICE_CLASS_WATER,),
+                device_class=DEVICE_CLASS_VOLUME_FLOW_RATE,),
             cv.Optional(CONF_WATER_TEMPERATURE_SENSOR, default={ CONF_NAME: "Water Temperature",}): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
