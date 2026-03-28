@@ -18,6 +18,7 @@
 //
 #include "esphome/core/defines.h"
 #include "esphome/core/log.h"
+#include "esphome/core/application.h"
 #include "qalcosonicnfc.h"
 #include "PN5180ISO15693.h"
 #include "PN5180Debug.h"
@@ -157,7 +158,7 @@ void QalcosonicNfc::setup() {
     
     this->nfc_->begin();
     if (!this->nfc_->reset()) {
-        mark_failed("No communication to PN5180");
+        mark_failed(LOG_STR("No communication to PN5180"));
         return;
     }
     
@@ -169,7 +170,7 @@ void QalcosonicNfc::setup() {
         ESP_LOGE(TAG, "Initialization failed! Marking as failed");
         //delay(1000);
         //esp_restart();
-        mark_failed("Incorrect PN5180 product version");
+        mark_failed(LOG_STR("Incorrect PN5180 product version"));
     }
     
     uint8_t firmwareVersion[2];
@@ -212,6 +213,7 @@ void QalcosonicNfc::update() {
       this->status_clear_error();
   }
   
+  App.feed_wdt();
   ESP_LOGI(TAG, "Scanning for water meter...");
   ISO15693ErrorCode rc = this->nfc_->getInventory(this->meterUid);
   if (ISO15693_EC_OK != rc) {
@@ -238,6 +240,7 @@ void QalcosonicNfc::update() {
   }
   ESP_LOGD(TAG, "ST25: Energy harvesting state: EH_EN=%u, EH_ON=%u, FIELD_ON=%u, VCC_ON=%u", this->readBuffer[1] & ST25_EH_EN, (this->readBuffer[1] & ST25_EH_ON) >> 1, (readBuffer[1] & ST25_FIELD_ON) >> 2, (this->readBuffer[1] & ST25_VCC_ON) >> 3);
   
+  App.feed_wdt();
   if(!this->st25MailboxEnable()) {
       this->nfc_->setRF_off();
       return;
@@ -248,10 +251,12 @@ void QalcosonicNfc::update() {
    uint8_t commandResetApp[] = {0x10, 0x40, 0xFE};
    uint8_t commandGetData1[] = {0x10, 0x7B, 0xFE};
    
+   App.feed_wdt();
    if(!issueMeterCommand(commandResetApp, sizeof(commandResetApp)/sizeof(commandResetApp[0]))) {
       this->nfc_->setRF_off();
       return;
     }
+    App.feed_wdt();
    if(!issueMeterCommand(commandGetData1, sizeof(commandGetData1)/sizeof(commandGetData1[0]))) {
       this->nfc_->setRF_off();
       return;
@@ -272,101 +277,306 @@ void QalcosonicNfc::update() {
 }
 
 void QalcosonicNfc::publishSensors() {
-    // Generate the final measurements from the returned buffer
-    for (uint8_t *buf = this->readBuffer + 20; buf < this->readBuffer + responseLength;)
-    {
-        uint32_t dif = *buf++;
-        while (buf[-1] & 0x80) buf++; // skip all DIF extension bytes
+    if (responseLength < 10) {
+        ESP_LOGE(TAG, "Frame too short");
+        return;
+    }
+
+    // start frame
+    int start_idx = -1;
+    for (int i = 0; i <= responseLength - 6; i++) {
+        if (readBuffer[i] == 0x68 && 
+            readBuffer[i + 3] == 0x68 && 
+            readBuffer[i + 1] == readBuffer[i + 2]) {
+            start_idx = i;
+            break;
+        }
+    }
+    if (start_idx == -1) {
+        ESP_LOGE(TAG, "Valid M-Bus frame not found (missing 0x68 L L 0x68 pattern)");
+        return;
+    }
+
+    uint8_t l_field = readBuffer[start_idx + 1];
+
+    // check length based on start frame
+    int total_frame_length = 4 + l_field + 2;
+    if (start_idx + total_frame_length > responseLength) {
+        ESP_LOGE(TAG, "Incomplete M-Bus frame (L-field: %d, buffer size: %d)", l_field, responseLength);
+        return;
+    }
+
+    // checksum check
+    uint8_t calculated_cs = 0;
+    for (int i = start_idx + 4; i < start_idx + 4 + l_field; i++) {
+        calculated_cs += readBuffer[i];
+    }
+    uint8_t received_cs = readBuffer[start_idx + 4 + l_field];
+    uint8_t stop_byte = readBuffer[start_idx + 4 + l_field + 1];
+    if (calculated_cs != received_cs) {
+        ESP_LOGE(TAG, "M-Bus Checksum failed (calculated: %02x, received: %02x)", calculated_cs, received_cs);
+        return;
+    } else {
+        ESP_LOGD(TAG, "M-Bus Checksum OK (calculated: %02x, received: %02x)", calculated_cs, received_cs);
+    }
+
+    if (stop_byte != 0x16) {
+        ESP_LOGE(TAG, "M-Bus Stop byte missing, found: %02x", stop_byte);
+        return;
+    }
+
+    uint8_t ci_field = readBuffer[start_idx + 6];
+    int payload_offset = start_idx + 7; 
+    
+    if (ci_field == 0x72 || ci_field == 0x7A) {
+        payload_offset += 12;
+    }
+
+    uint8_t *buf = this->readBuffer + payload_offset;
+    uint8_t *end_buf = this->readBuffer + start_idx + 4 + l_field;
+
+    while (buf < end_buf) {
+        uint8_t dif = *buf++;
+
+        // end of user data
+        if (dif == 0x0F || dif == 0x1F) {
+            break;
+        }
+
+        // skip DIF extensions
+        while ((buf[-1] & 0x80) && buf < end_buf) {
+            buf++; 
+        }
+        
+        if (buf >= end_buf) break;
+
         uint8_t vif = *buf++;
-        uint8_t vife = vif & 0x80 ? *buf++ : 0;
-        while (buf[-1] & 0x80) buf++; // skip further VIF extension bytes (we need only the first one)
+        uint8_t vife = 0;
+
+        if (vif & 0x80) {
+            if (buf >= end_buf) break;
+            vife = *buf++;
+        }
+
+        // skip further VIF extensions
+        while ((buf[-1] & 0x80) && buf < end_buf) {
+            buf++; 
+        }
+
         ESP_LOGD(TAG, "DIF:%02x VIF:%02x VIFE:%02x", dif, vif, vife);
-        switch (vif << 8 | vife) 
-        {
-            case 0x1300:
-                {
-                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "Water Usage: %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
-                    this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
-                    break;
-                }
 
-            case 0x933b:
-                {
-                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "Water Usage (Only Positive): %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
-                    this->water_usage_positive_sensor_->publish_state(waterUsage/1000.0f);
-                    break;
-                }
+        // calculate data size
+        uint8_t data_length_type = dif & 0x0F;
+        uint8_t data_size = 0;
+        switch (data_length_type) {
+            case 0x00: data_size = 0; break; // No data
+            case 0x01: data_size = 1; break; // 8-bit integer
+            case 0x02: data_size = 2; break; // 16-bit integer
+            case 0x03: data_size = 3; break; // 24-bit integer
+            case 0x04: data_size = 4; break; // 32-bit integer
+            case 0x05: data_size = 4; break; // 32-bit real
+            case 0x06: data_size = 6; break; // 48-bit integer
+            case 0x07: data_size = 8; break; // 64-bit integer
+            case 0x08: data_size = 0; break; // Selection for Readout
+            case 0x09: data_size = 1; break; // 2 digit BCD
+            case 0x0A: data_size = 2; break; // 4 digit BCD
+            case 0x0B: data_size = 3; break; // 6 digit BCD
+            case 0x0C: data_size = 4; break; // 8 digit BCD
+            case 0x0D:
+                // variable length data; the first byte of data dictates the length of the string
+                data_size = (buf < end_buf) ? (*buf + 1) : 0; 
+                break; 
+            case 0x0E: data_size = 6; break; // 12 digit BCD
+            case 0x0F: data_size = 0; break; // Special Functions
+        }
 
-            case 0x933c:
-                {
-                    int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "Water Usage (Only Negative): %iL / %1.3fm3", waterUsage, waterUsage/1000.0f);
-                    this->water_usage_negative_sensor_->publish_state(waterUsage/1000.0f);
-                    break;
-                }
+        // Bounds check before reading memory block
+        if (buf + data_size > end_buf) {
+            ESP_LOGW(TAG, "Data record exceeds frame payload limits");
+            break;
+        }
 
-            case 0x3b00:
-                {
-                    int16_t waterFlow = int16_t(buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "Water Flow: %iL / %1.3fm3", waterFlow, waterFlow/1000.0f);
-                    this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
-                    break;
-                }
+        switch (vif << 8 | vife) {
+            case 0x1300: {
+                int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "Water Usage: %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
+                this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
+                break;
+            }
 
-            case 0x5900:
-                {
-                    int16_t flowTemperature = int16_t(buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "Water Temperature: %2.2f°C", flowTemperature/100.0f);
-                    this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
-                    break;
-                }
+            case 0x933b: {
+                int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "Water Usage (Only Positive): %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
+                this->water_usage_positive_sensor_->publish_state(waterUsage/1000.0f);
+                break;
+            }
 
-            case 0x6600:
-                {
-                    int16_t externalTemperature = int16_t(buf[1] << 8 | buf[0]);
-                    ESP_LOGI(TAG, "External Temperature: %2.1f°C", externalTemperature/10.0f);
-                    this->external_temperature_sensor_->publish_state(externalTemperature/10.0f);
-                    break;
-                }
+            case 0x933c: {
+                int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "Water Usage (Only Negative): %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
+                this->water_usage_negative_sensor_->publish_state(waterUsage/1000.0f);
+                break;
+            }
 
-            case 0x6d00:
-                {
-                    int32_t minute = buf[0] & 0x3F;
-                    int32_t hour = buf[1] & 0x1F;
-                    int32_t day = buf[2] & 0x1F;
-                    int32_t month = buf[3] & 0x0F;
-                    int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
-                    ESP_LOGI(TAG, "Timepoint: %04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
-                    char str_timepoint[17];  // e. g. 2025-12-18 21:33
+            case 0x3b00: {
+                int16_t waterFlow = int16_t(buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "Water Flow: %iL / %1.3fm³", waterFlow, waterFlow/1000.0f);
+                this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
+                break;
+            }
+
+            case 0x5900: {
+                int16_t flowTemperature = int16_t(buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "Water Temperature: %2.1f°C", flowTemperature/100.0f);
+                this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
+                break;
+            }
+
+            case 0x6600: {
+                int16_t externalTemperature = int16_t(buf[1] << 8 | buf[0]);
+                ESP_LOGI(TAG, "External Temperature: %2.1f°C", externalTemperature/10.0f);
+                this->external_temperature_sensor_->publish_state(externalTemperature/10.0f);
+                break;
+            }
+
+            case 0x6d00: {
+                int32_t minute = buf[0] & 0x3F;
+                int32_t hour = buf[1] & 0x1F;
+                int32_t day = buf[2] & 0x1F;
+                int32_t month = buf[3] & 0x0F;
+                int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
+
+                char str_timepoint[32];
+                if (!this->timezone_.empty()) {
+                    setenv("TZ", this->timezone_.c_str(), 1);
+                    tzset();
+                    struct tm timeinfo = {};
+                    timeinfo.tm_year = year - 1900;
+                    timeinfo.tm_mon = month - 1;
+                    timeinfo.tm_mday = day;
+                    timeinfo.tm_hour = hour;
+                    timeinfo.tm_min = minute;
+                    timeinfo.tm_sec = 0;
+                    timeinfo.tm_isdst = -1;
+                    mktime(&timeinfo);
+                    strftime(str_timepoint, sizeof(str_timepoint), "%Y-%m-%dT%H:%M:%S%z", &timeinfo);
+                } else {
                     snprintf(str_timepoint, sizeof(str_timepoint), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
-                    this->timepoint_sensor_->publish_state(str_timepoint);
+                }
+
+                ESP_LOGI(TAG, "Timepoint: %s", str_timepoint);
+                this->timepoint_sensor_->publish_state(str_timepoint);
+                break;
+            }
+
+            case 0xfd74: {
+                uint8_t batteryPercentage = buf[0];
+                ESP_LOGI(TAG, "Battery Percentage: %u%%", batteryPercentage);
+                this->battery_level_sensor_->publish_state(batteryPercentage);
+                break;
+            }
+
+            case 0x7800:
+                {
+                    uint32_t serialNumber = 0;
+                    // serial numbers are usually sent as 4-byte BCD (DIF = 0x0C)
+                    if ((dif & 0x0F) == 0x0C) { 
+                        serialNumber = (buf[3] >> 4) * 10000000 + (buf[3] & 0x0F) * 1000000 +
+                                       (buf[2] >> 4) * 100000 + (buf[2] & 0x0F) * 10000 +
+                                       (buf[1] >> 4) * 1000 + (buf[1] & 0x0F) * 100 +
+                                       (buf[0] >> 4) * 10 + (buf[0] & 0x0F);
+                    } else { 
+                        // fallback if the meter sends it as a standard binary integer
+                        serialNumber = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    }
+                    ESP_LOGI(TAG, "Serial Number: %u", serialNumber);
+                    char str_serial_number[9]; 
+                    snprintf(str_serial_number, sizeof(str_serial_number), "%u", serialNumber);
+                    this->serial_number_sensor_->publish_state(str_serial_number);
                     break;
                 }
 
-            case 0xfd74:
+            case 0xfd17:
                 {
-                    uint8_t batteryPercentage = buf[0];
-                    ESP_LOGI(TAG, "Battery Percentage: %u", batteryPercentage);
-                    this->battery_level_sensor_->publish_state(batteryPercentage);
+                    // This should be the correct byte order the way I understand the M-Bus and Qalcosonic W1 documentation.
+                    // I don't have any errors on my meter, so I can't test it.
+                    // The byte order should correspond to the four error digits on the meter's display.
+                    char str_error[12]; 
+                    snprintf(str_error, sizeof(str_error), "%02X %02X %02X %02X", buf[0], buf[1], buf[2], buf[3]);
+                    ESP_LOGI(TAG, "Error Flags Raw: %s", str_error);
+                    this->error_flags_raw_->publish_state(str_error);
+
+                    this->error_reconfiguration_warning_->publish_state(buf[0] & (1 << 1));
+                    this->error_no_consumption_->publish_state(buf[0] & (1 << 2));
+                    this->error_damage_meter_housing_->publish_state(buf[0] & (1 << 3));
+                    this->error_calculator_hardware_failure_->publish_state(buf[0] & (1 << 4));
+
+                    this->error_leakage_->publish_state(buf[1] & (1 << 1));
+                    this->error_burst_->publish_state(buf[1] & (1 << 2));
+                    this->error_optical_communication_->publish_state(buf[1] & (1 << 3));
+                    this->error_low_battery_->publish_state(buf[1] & (1 << 4));
+
+                    this->error_hardware_failure_1_->publish_state(buf[2] & (1 << 3));
+                    this->error_hardware_failure_2_->publish_state(buf[2] & (1 << 4));
+
+                    this->error_no_signal_->publish_state(buf[3] & (1 << 1));
+                    this->error_reverse_flow_->publish_state(buf[3] & (1 << 2));
+                    this->error_flow_rate_->publish_state(buf[3] & (1 << 3));
+                    this->error_freeze_alert_->publish_state(buf[3] & (1 << 4));
+                    break;
+                }
+
+            case 0x2400:
+                {
+                    uint32_t operatingTimeSec = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "Operating Time: %u seconds (%.1f days)", operatingTimeSec, operatingTimeSec / 86400.0f);
+                    this->operating_time_sensor_->publish_state(operatingTimeSec);
+                    break;
+                }
+
+            case 0x2000:
+                {
+                    uint32_t onTimeSec = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
+                    ESP_LOGI(TAG, "On Time: %u seconds (%.1f days)", onTimeSec, onTimeSec / 86400.0f);
+                    this->on_time_sensor_->publish_state(onTimeSec);
                     break;
                 }
         }
 
-        uint8_t data_size = dif & 0x0f;
         buf += data_size;
     }
-    
+
     this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
 }
 
 void QalcosonicNfc::publishSensorsAsFailed() {
     this->water_usage_sensor_->publish_state(NAN);
+    this->water_usage_positive_sensor_->publish_state(NAN);
+    this->water_usage_negative_sensor_->publish_state(NAN);
     this->water_flow_sensor_->publish_state(NAN);
     this->water_temperature_sensor_->publish_state(NAN);
+    this->external_temperature_sensor_->publish_state(NAN);
     this->battery_level_sensor_->publish_state(NAN);
-    //this->raw_data_sensor_->publish_state(NAN);
+    this->operating_time_sensor_->publish_state(NAN);
+    this->on_time_sensor_->publish_state(NAN);
+    this->raw_data_sensor_->publish_state("");
+    this->serial_number_sensor_->publish_state("");
+    this->error_flags_raw_->publish_state("");
+    this->error_reconfiguration_warning_->publish_state(false);
+    this->error_no_consumption_->publish_state(false);
+    this->error_damage_meter_housing_->publish_state(false);
+    this->error_calculator_hardware_failure_->publish_state(false);
+    this->error_leakage_->publish_state(false);
+    this->error_burst_->publish_state(false);
+    this->error_optical_communication_->publish_state(false);
+    this->error_low_battery_->publish_state(false);
+    this->error_hardware_failure_1_->publish_state(false);
+    this->error_hardware_failure_2_->publish_state(false);
+    this->error_no_signal_->publish_state(false);
+    this->error_reverse_flow_->publish_state(false);
+    this->error_flow_rate_->publish_state(false);
+    this->error_freeze_alert_->publish_state(false);
+
     this->status_set_error();
 }
 

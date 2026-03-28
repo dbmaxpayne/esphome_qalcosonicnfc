@@ -67,28 +67,114 @@ qalcosonicnfc:
   pn5180_busy_pin: GPIO16
   pn5180_rst_pin:  GPIO17
   water_usage_sensor:
-    name: "Wasserverbrauch"
+    # in m³
+    name: "Water usage"
   water_usage_positive_sensor:
-    name: "Volume (Only Positive)"
+    # in m³
+    name: "Water usage (only positive)"
     disabled_by_default: True
   water_usage_negative_sensor:
-    name: "Volume (Only Negative)"
+    # in m³
+    name: "Water usage (only negative)"
     disabled_by_default: True
   water_flow_sensor:
-    name: "Wasserdurchfluss"
+    # in m³/h
+    name: "Water flow"
   water_temperature_sensor:
-    name: "Wassertemperatur"
+    # in °C
+    name: "Water temperature"
   external_temperature_sensor:
-    name: "External Temperature"
+    # in °C
+    # ambient temperature
+    name: "External temperature"
   battery_level_sensor:
-    name: "Batteriestand"
+    name: "Battery level"
   timepoint_sensor:
-    name: "Timepoint"
+    name: "Time point"
+    timezone: "Europe/Berlin" # optional;
+      # if not set, timezone will be inferred from ESPHome's timezone
+      # Home Assistant requires a timezone to recognize a timestamp as a propper time and date instead of just text
+      # if no timezone can be found, the time point will be emitted a plain text to Home Assistant
     disabled_by_default: True
+  operating_time_sensor:
+    # in seconds
+    name: "Operating time"
+    disabled_by_default: True
+  on_time_sensor:
+    # in seconds
+    name: "On time"
+    disabled_by_default: True
+  serial_number_sensor:
+    # eight digits as text
+    name: "Serial number"
+
+  # The following binary sensors are generated based on the error flags
+  error_reconfiguration_warning:
+    # Error digit 1, error code 1
+    name: "Reconfiguration Warning"
+  error_no_consumption:
+    # Error digit 1, error code 2
+    name: "No consumption"
+  error_damage_meter_housing:
+    # Error digit 1, error code 4
+    name: "Damage of meter housing"
+  error_calculator_hardware_failure:
+    # Error digit 1, error code 8
+    name: "Calculator's hardware failure detected"
+  error_leakage:
+    # Error digit 2, error code 1
+    name: "Leakage"
+  error_burst:
+    # Error digit 2, error code 2
+    name: "Pipe is cracked (Burst)"
+  error_optical_communication:
+    # Error digit 2, error code 4
+    name: "Optical communication temporarily stopped"
+  error_low_battery:
+    # Error digit 2, error code 8
+    name: "Low battery (less than 12 months lifetime left)"
+  error_hardware_failure_1:
+    # Error digit 3, error code 4
+    name: "Hardware failure detected (4)"
+  error_hardware_failure_2:
+    # Error digit 3, error code 8
+    name: "Hardware failure detected (8)"
+  error_no_signal:
+    # Error digit 4, error code 1
+    name: "No signal; the flow sensor is not filled with water"
+  error_reverse_flow:
+    # Error digit 4, error code 2
+    name: "Reverse flow"
+  error_flow_rate:
+    # Error digit 4, error code 4
+    # Q₄ is the meter's maximal flow rate
+    # Q₄ usually 1.25 times the meter's nominal flow rate (Q₃)
+    # Q₃ should be printed on top of the meter
+    name: "Flow rate is greater than 1.25×Q₄"
+  error_freeze_alert:
+    # Error digit 4, error code 8
+    name: "Freeze alert"
+  # On the meter's LCD, the codes are added as following
+  #   3 - corresponds errors 2 + 1
+  #   5 - corresponds errors 4 + 1
+  #   7 - corresponds errors 4 + 2 + 1
+  #   9 - corresponds errors 8 + 1
+  #   A - corresponds errors 8 + 2
+  #   B - corresponds errors 8 + 2 + 1
+  #   C - corresponds errors 8 + 4
+  #   D - corresponds errors 8 + 4 + 1
+  #   E - corresponds errors 8 + 4 + 2
+  #   F - corresponds errors 8 + 4 + 2 + 1
+
+  error_flags_raw:
+    # the four error bytes, as hex blocks seperated with space
+    # correspond to the four error digits on the display
+    # e.g.: "00 00 00 00"
+    name: "Error flags raw"
   # This sensor allows me to maybe find more useful data in the future.
   # You should not need it and can disable it.
   raw_data_sensor:
-    name: "M-BUS Rohdaten"
+    name: "M-BUS raw data"
     disabled_by_default: True
 
 # Enable logging
