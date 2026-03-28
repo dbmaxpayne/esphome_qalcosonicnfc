@@ -489,9 +489,9 @@ void QalcosonicNfc::publishSensors() {
                         // fallback if the meter sends it as a standard binary integer
                         serialNumber = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                     }
-                    ESP_LOGI(TAG, "Serial Number: %u", serialNumber);
+                    ESP_LOGI(TAG, "Serial Number: %08u", serialNumber);
                     char str_serial_number[9]; 
-                    snprintf(str_serial_number, sizeof(str_serial_number), "%u", serialNumber);
+                    snprintf(str_serial_number, sizeof(str_serial_number), "%08u", serialNumber);
                     this->serial_number_sensor_->publish_state(str_serial_number);
                     break;
                 }
