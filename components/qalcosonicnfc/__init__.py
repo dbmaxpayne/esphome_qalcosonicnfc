@@ -49,8 +49,8 @@ CONF_ERROR_LEAKAGE = "error_leakage"
 CONF_ERROR_BURST = "error_burst"
 CONF_ERROR_OPTICAL_COMMUNICATION = "error_optical_communication"
 CONF_ERROR_LOW_BATTERY = "error_low_battery"
-CONF_ERROR_HARDWARE_FAILURE_1 = "error_hardware_failure_1"
-CONF_ERROR_HARDWARE_FAILURE_2 = "error_hardware_failure_2"
+CONF_ERROR_SOFTWARE_FAILURE = "error_software_failure"
+CONF_ERROR_HARDWARE_FAILURE = "error_hardware_failure"
 CONF_ERROR_NO_SIGNAL = "error_no_signal"
 CONF_ERROR_REVERSE_FLOW = "error_reverse_flow"
 CONF_ERROR_FLOW_RATE = "error_flow_rate"
@@ -204,10 +204,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ERROR_LOW_BATTERY, default={ CONF_NAME: "Low battery, less than 12 months left",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
-            cv.Optional(CONF_ERROR_HARDWARE_FAILURE_1, default={ CONF_NAME: "Hardware failure detected (4)",}): binary_sensor.binary_sensor_schema(
+            cv.Optional(CONF_ERROR_SOFTWARE_FAILURE, default={ CONF_NAME: "Software failure detected",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
-            cv.Optional(CONF_ERROR_HARDWARE_FAILURE_2, default={ CONF_NAME: "Hardware failure detected (8)",}): binary_sensor.binary_sensor_schema(
+            cv.Optional(CONF_ERROR_HARDWARE_FAILURE, default={ CONF_NAME: "Hardware failure detected",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_ERROR_NO_SIGNAL, default={ CONF_NAME: "No signal; the flow sensor is not filled with water",}): binary_sensor.binary_sensor_schema(
@@ -326,11 +326,11 @@ async def to_code(config):
     error_low_battery = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_LOW_BATTERY))
     cg.add(var.set_error_low_battery(error_low_battery))
 
-    error_hardware_failure_1 = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_HARDWARE_FAILURE_1))
-    cg.add(var.set_error_hardware_failure_1(error_hardware_failure_1))
+    error_software_failure = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_SOFTWARE_FAILURE))
+    cg.add(var.set_error_software_failure(error_software_failure))
 
-    error_hardware_failure_2 = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_HARDWARE_FAILURE_2))
-    cg.add(var.set_error_hardware_failure_2(error_hardware_failure_2))
+    error_hardware_failure = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_HARDWARE_FAILURE))
+    cg.add(var.set_error_hardware_failure(error_hardware_failure))
 
     error_no_signal = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_NO_SIGNAL))
     cg.add(var.set_error_no_signal(error_no_signal))

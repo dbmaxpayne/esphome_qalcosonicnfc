@@ -517,8 +517,8 @@ void QalcosonicNfc::publishSensors() {
                     this->error_optical_communication_->publish_state(buf[1] & (1 << 3));
                     this->error_low_battery_->publish_state(buf[1] & (1 << 4));
 
-                    this->error_hardware_failure_1_->publish_state(buf[2] & (1 << 3));
-                    this->error_hardware_failure_2_->publish_state(buf[2] & (1 << 4));
+                    this->error_software_failure_->publish_state(buf[2] & (1 << 3));
+                    this->error_hardware_failure_->publish_state(buf[2] & (1 << 4));
 
                     this->error_no_signal_->publish_state(buf[3] & (1 << 1));
                     this->error_reverse_flow_->publish_state(buf[3] & (1 << 2));
@@ -571,8 +571,8 @@ void QalcosonicNfc::publishSensorsAsFailed() {
     this->error_burst_->publish_state(false);
     this->error_optical_communication_->publish_state(false);
     this->error_low_battery_->publish_state(false);
-    this->error_hardware_failure_1_->publish_state(false);
-    this->error_hardware_failure_2_->publish_state(false);
+    this->error_software_failure_->publish_state(false);
+    this->error_hardware_failure_->publish_state(false);
     this->error_no_signal_->publish_state(false);
     this->error_reverse_flow_->publish_state(false);
     this->error_flow_rate_->publish_state(false);

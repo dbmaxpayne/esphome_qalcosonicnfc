@@ -106,8 +106,8 @@ class QalcosonicNfc : public esphome::PollingComponent {
   binary_sensor::BinarySensor *error_burst_{nullptr};
   binary_sensor::BinarySensor *error_optical_communication_{nullptr};
   binary_sensor::BinarySensor *error_low_battery_{nullptr};
-  binary_sensor::BinarySensor *error_hardware_failure_1_{nullptr};
-  binary_sensor::BinarySensor *error_hardware_failure_2_{nullptr};
+  binary_sensor::BinarySensor *error_software_failure_{nullptr};
+  binary_sensor::BinarySensor *error_hardware_failure_{nullptr};
   binary_sensor::BinarySensor *error_no_signal_{nullptr};
   binary_sensor::BinarySensor *error_reverse_flow_{nullptr};
   binary_sensor::BinarySensor *error_flow_rate_{nullptr};
@@ -138,8 +138,8 @@ class QalcosonicNfc : public esphome::PollingComponent {
   void set_error_burst(binary_sensor::BinarySensor *error_burst) { error_burst_ = error_burst; }
   void set_error_optical_communication(binary_sensor::BinarySensor *error_optical_communication) { error_optical_communication_ = error_optical_communication; }
   void set_error_low_battery(binary_sensor::BinarySensor *error_low_battery) { error_low_battery_ = error_low_battery; }
-  void set_error_hardware_failure_1(binary_sensor::BinarySensor *error_hardware_failure_1) { error_hardware_failure_1_ = error_hardware_failure_1; }
-  void set_error_hardware_failure_2(binary_sensor::BinarySensor *error_hardware_failure_2) { error_hardware_failure_2_ = error_hardware_failure_2; }
+  void set_error_software_failure(binary_sensor::BinarySensor *error_software_failure) { error_software_failure_ = error_software_failure; }
+  void set_error_hardware_failure(binary_sensor::BinarySensor *error_hardware_failure) { error_hardware_failure_ = error_hardware_failure; }
   void set_error_no_signal(binary_sensor::BinarySensor *error_no_signal) { error_no_signal_ = error_no_signal; }
   void set_error_reverse_flow(binary_sensor::BinarySensor *error_reverse_flow) { error_reverse_flow_ = error_reverse_flow; }
   void set_error_flow_rate(binary_sensor::BinarySensor *error_flow_rate) { error_flow_rate_ = error_flow_rate; }

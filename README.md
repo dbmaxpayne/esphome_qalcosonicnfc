@@ -114,36 +114,48 @@ qalcosonicnfc:
     name: "Reconfiguration Warning"
   error_no_consumption:
     # Error digit 1, error code 2
+    # Is set when there was no water usage for the last either 3/7/30 days
+    # Not enabled by default
     name: "No consumption"
   error_damage_meter_housing:
     # Error digit 1, error code 4
+    # This is the tamper alarm; occurs when meter is opened or damaged
     name: "Damage of meter housing"
   error_calculator_hardware_failure:
     # Error digit 1, error code 8
     name: "Calculator's hardware failure detected"
   error_leakage:
     # Error digit 2, error code 1
+    # Is set, if the constant flow is either 0.25%/0.5%/1% (default 1%) of Q₃ (printed on meter) for 24 hours
+    # Is unset if the flow is lower than the alarm threshold for one hour
     name: "Leakage"
   error_burst:
     # Error digit 2, error code 2
+    # Is set, if the constant flow is either 5%/10%/20% (default 10%) of Q₃ (printed on meter) for one hour
+    # Is unset if the flow is lower than the alarm threshold for 32 seconds
     name: "Pipe is cracked (Burst)"
   error_optical_communication:
     # Error digit 2, error code 4
+    # Can also be a general communication error for meters with LoRa WAN communication type
     name: "Optical communication temporarily stopped"
   error_low_battery:
     # Error digit 2, error code 8
     name: "Low battery (less than 12 months lifetime left)"
-  error_hardware_failure_1:
+  error_software_failure:
     # Error digit 3, error code 4
-    name: "Hardware failure detected (4)"
-  error_hardware_failure_2:
+    name: "Software failure detected"
+  error_hardware_failure:
     # Error digit 3, error code 8
-    name: "Hardware failure detected (8)"
+    name: "Hardware failure detected"
   error_no_signal:
     # Error digit 4, error code 1
+    # Empty pipe (pipe is not filled with water or air bubbles are detected)
+    # Is set, if problem is detected for 30 seconds and is unset if the problem disappears for 30 seconds
     name: "No signal; the flow sensor is not filled with water"
   error_reverse_flow:
     # Error digit 4, error code 2
+    # Is set when meter detects negative flow that is equal to 2× of starting flow
+    # Is unset if reverse flow is stopped
     name: "Reverse flow"
   error_flow_rate:
     # Error digit 4, error code 4
@@ -153,6 +165,8 @@ qalcosonicnfc:
     name: "Flow rate is greater than 1.25×Q₄"
   error_freeze_alert:
     # Error digit 4, error code 8
+    # Is set when water temperature is lower than either 2/3/4/5°C (default 5°C) for five minutes
+    # Is unset when the temperature is higher than the alarm threshold for five minutes
     name: "Freeze alert"
   # On the meter's LCD, the codes are added as following
   #   3 - corresponds errors 2 + 1
