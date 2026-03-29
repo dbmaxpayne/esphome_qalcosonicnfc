@@ -445,11 +445,12 @@ void QalcosonicNfc::publishSensors() {
                 int32_t day = buf[2] & 0x1F;
                 int32_t month = buf[3] & 0x0F;
                 int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
-
+                ESP_LOGI(TAG, "Raw Date: %04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
                 char str_timepoint[32];
                 if (!this->timezone_.empty()) {
                     setenv("TZ", this->timezone_.c_str(), 1);
                     tzset();
+                    ESP_LOGI(TAG, "using timezone %s", this->timezone_.c_str());
                     struct tm timeinfo = {};
                     timeinfo.tm_year = year - 1900;
                     timeinfo.tm_mon = month - 1;
@@ -457,7 +458,7 @@ void QalcosonicNfc::publishSensors() {
                     timeinfo.tm_hour = hour;
                     timeinfo.tm_min = minute;
                     timeinfo.tm_sec = 0;
-                    timeinfo.tm_isdst = -1;
+                    timeinfo.tm_isdst = 0;
                     mktime(&timeinfo);
                     strftime(str_timepoint, sizeof(str_timepoint), "%Y-%m-%dT%H:%M:%S%z", &timeinfo);
                 } else {
