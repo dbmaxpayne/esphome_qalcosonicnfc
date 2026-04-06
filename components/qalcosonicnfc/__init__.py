@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
 from esphome.components import sensor, text_sensor#, spi
-from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY
+from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY, ENTITY_CATEGORY_DIAGNOSTIC
 
 CODEOWNERS = ["@dbmaxpayne"]
 
@@ -83,8 +83,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "Raw M-BUS Data",}): text_sensor.text_sensor_schema(),
             cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint",}): text_sensor.text_sensor_schema(),
             cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR, default={ CONF_NAME: "Consecutive Errors",}): sensor.sensor_schema(
+                icon="mdi:alert-circle",
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             ),
             cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
