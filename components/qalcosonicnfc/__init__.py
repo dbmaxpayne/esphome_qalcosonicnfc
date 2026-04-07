@@ -37,11 +37,13 @@ CONF_EXTERNAL_TEMPERATURE_SENSOR = "external_temperature_sensor"
 CONF_BATTERY_LEVEL_SENSOR = "battery_level_sensor"
 CONF_OPERATING_TIME_SENSOR = "operating_time_sensor"
 CONF_ON_TIME_SENSOR = "on_time_sensor"
+CONF_METER_VERSION_SENSOR = "meter_version_sensor"
 CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
 CONF_TIMEPOINT_SENSOR_RAW = "timepoint_sensor_raw"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
 CONF_SERIAL_NUMBER_SENSOR = "serial_number_sensor"
 CONF_METER_ID_SENSOR = "meter_id_sensor"
+CONF_MANUFACTURER_ID_SENSOR = "manufacturer_id_sensor"
 CONF_ERROR_FLAGS_RAW = "error_flags_raw"
 CONF_ERROR_RECONFIGURATION_WARNING = "error_reconfiguration_warning"
 CONF_ERROR_NO_CONSUMPTION = "error_no_consumption"
@@ -160,9 +162,14 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_SERIAL_NUMBER_SENSOR, default={ CONF_NAME: "Serial number",}): text_sensor.text_sensor_schema(
-                icon="mdi:numeric",),
+                icon="mdi:numeric",
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_METER_ID_SENSOR, default={ CONF_NAME: "Meter ID",}): text_sensor.text_sensor_schema(
-                icon="mdi:numeric",),
+                icon="mdi:numeric",
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
+            cv.Optional(CONF_MANUFACTURER_ID_SENSOR, default={ CONF_NAME: "Manufacturer ID",}): text_sensor.text_sensor_schema(
+                icon="mdi:factory",
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_ERROR_FLAGS_RAW, default={ CONF_NAME: "Error flags raw",}): text_sensor.text_sensor_schema(
                 icon="mdi:alert",
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
@@ -176,6 +183,9 @@ CONFIG_SCHEMA = (
                 icon="mdi:clock",
                 state_class=STATE_CLASS_TOTAL_INCREASING,
                 device_class=DEVICE_CLASS_DURATION,),
+            cv.Optional(CONF_METER_VERSION_SENSOR, default={ CONF_NAME: "Meter version",}): text_sensor.text_sensor_schema(
+                icon="mdi:update",
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "M-BUS raw data",}): text_sensor.text_sensor_schema(
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_TIMEPOINT_SENSOR, default={}): cv.Schema({
@@ -185,6 +195,7 @@ CONFIG_SCHEMA = (
                 text_sensor.text_sensor_schema()
             ),
             cv.Optional(CONF_TIMEPOINT_SENSOR_RAW, default={ CONF_NAME: "Time point (raw)",}): text_sensor.text_sensor_schema(
+                icon="mdi:clock",
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_ERROR_RECONFIGURATION_WARNING, default={ CONF_NAME: "Reconfiguration warning",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
@@ -276,6 +287,9 @@ async def to_code(config):
     on_time_sensor = await sensor.new_sensor(config.get(CONF_ON_TIME_SENSOR))
     cg.add(var.set_on_time_sensor(on_time_sensor))
 
+    meter_version_sensor = await text_sensor.new_text_sensor(config.get(CONF_METER_VERSION_SENSOR))
+    cg.add(var.set_meter_version_sensor(meter_version_sensor))
+
     conf_timepoint_sensor = config.get(CONF_TIMEPOINT_SENSOR)
     conf_timepoint_sensor = copy.deepcopy(conf_timepoint_sensor)
     tz = None
@@ -304,12 +318,15 @@ async def to_code(config):
 
     raw_data_sensor = await text_sensor.new_text_sensor(config.get(CONF_RAW_DATA_SENSOR))
     cg.add(var.set_raw_data_sensor(raw_data_sensor))
-    
+
     serial_number_sensor = await text_sensor.new_text_sensor(config.get(CONF_SERIAL_NUMBER_SENSOR))
     cg.add(var.set_serial_number_sensor(serial_number_sensor))
-    
+
     meter_id_sensor = await text_sensor.new_text_sensor(config.get(CONF_METER_ID_SENSOR))
     cg.add(var.set_meter_id_sensor(meter_id_sensor))
+
+    manufacturer_id_sensor = await text_sensor.new_text_sensor(config.get(CONF_MANUFACTURER_ID_SENSOR))
+    cg.add(var.set_manufacturer_id_sensor(manufacturer_id_sensor))
 
     error_flags_raw = await text_sensor.new_text_sensor(config.get(CONF_ERROR_FLAGS_RAW))
     cg.add(var.set_error_flags_raw(error_flags_raw))

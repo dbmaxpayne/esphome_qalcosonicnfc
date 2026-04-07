@@ -333,15 +333,31 @@ void QalcosonicNfc::publishSensors() {
     }
 
     // get id number from header
-    uint32_t idNumber = 0;
-    idNumber = (readBuffer[start_idx + 10] >> 4) * 10000000 + (readBuffer[start_idx + 10] & 0x0F) * 1000000 +
-               (readBuffer[start_idx + 9] >> 4) * 100000 + (readBuffer[start_idx + 9] & 0x0F) * 10000 +
-               (readBuffer[start_idx + 8] >> 4) * 1000 + (readBuffer[start_idx + 8] & 0x0F) * 100 +
-               (readBuffer[start_idx + 7] >> 4) * 10 + (readBuffer[start_idx + 7] & 0x0F);
-    char str_id_number[9]; 
-    snprintf(str_id_number, sizeof(str_id_number), "%08u", idNumber);
+    uint32_t id_number = (readBuffer[start_idx + 10] >> 4) * 10000000 + (readBuffer[start_idx + 10] & 0x0F) * 1000000 +
+                         (readBuffer[start_idx + 9] >> 4) * 100000 + (readBuffer[start_idx + 9] & 0x0F) * 10000 +
+                         (readBuffer[start_idx + 8] >> 4) * 1000 + (readBuffer[start_idx + 8] & 0x0F) * 100 +
+                         (readBuffer[start_idx + 7] >> 4) * 10 + (readBuffer[start_idx + 7] & 0x0F);
+    char str_id_number[9];
+    snprintf(str_id_number, sizeof(str_id_number), "%08u", id_number);
     ESP_LOGI(TAG, "ID Number: %s", str_id_number);
     this->meter_id_sensor_->publish_state(str_id_number);
+
+    // get manufacturer id
+    uint16_t man_id = readBuffer[start_idx + 12] << 8 | readBuffer[start_idx + 11];
+    char8_t char_1 = (man_id & 0xFC00) / (32 * 32) + 64;
+    char8_t char_2 = (man_id & 0x3E0) / 32 + 64;
+    char8_t char_3 = (man_id & 0x1F) + 64;
+    char str_man_id[4];
+    snprintf(str_man_id, sizeof(str_man_id), "%c%c%c", char_1, char_2, char_3);
+    ESP_LOGI(TAG, "Manufacturer Id: %s", str_man_id);
+    this->manufacturer_id_sensor_->publish_state(str_man_id);
+
+    // meter version
+    u_int8_t meter_version = readBuffer[start_idx + 13];
+    char meter_version_str[4];
+    snprintf(meter_version_str, sizeof(meter_version_str), "%u", meter_version);
+    ESP_LOGI(TAG, "Meter version: %s", meter_version_str);
+    this->meter_version_sensor_->publish_state(meter_version_str);
 
     uint8_t *buf = this->readBuffer + payload_offset;
     uint8_t *end_buf = this->readBuffer + start_idx + 4 + l_field;

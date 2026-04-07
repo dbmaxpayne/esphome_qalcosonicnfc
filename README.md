@@ -121,6 +121,13 @@ qalcosonicnfc:
     # eight digits as text
     name: "Serial number"
 
+  manufacturer_id_sensor:
+    # three letter manufacturer code
+    name: "Manufacturer ID"
+  meter_version_sensor:
+    # version or revision of the meter
+    name: "Meter version"
+
   # The following binary sensors are generated based on the error flags
   error_reconfiguration_warning:
     # Error digit 1, error code 1
