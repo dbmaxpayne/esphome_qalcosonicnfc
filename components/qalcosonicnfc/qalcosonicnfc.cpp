@@ -445,7 +445,6 @@ void QalcosonicNfc::publishSensors() {
                 int32_t day = buf[2] & 0x1F;
                 int32_t month = buf[3] & 0x0F;
                 int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
-                ESP_LOGI(TAG, "Raw Date: %04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
                 char str_timepoint[32];
                 if (!this->timezone_.empty()) {
                     setenv("TZ", this->timezone_.c_str(), 1);
@@ -462,11 +461,18 @@ void QalcosonicNfc::publishSensors() {
                     mktime(&timeinfo);
                     strftime(str_timepoint, sizeof(str_timepoint), "%Y-%m-%dT%H:%M:%S%z", &timeinfo);
                 } else {
+                    // fallback if timezone is not set
                     snprintf(str_timepoint, sizeof(str_timepoint), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
                 }
-
                 ESP_LOGI(TAG, "Timepoint: %s", str_timepoint);
                 this->timepoint_sensor_->publish_state(str_timepoint);
+
+                // publish the timepoint string as raw data without any date math
+                // may be offset from the current time by one hour because the meter does not switch to/from DST
+                char str_timepoint_raw[17];
+                snprintf(str_timepoint_raw, sizeof(str_timepoint_raw), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
+                ESP_LOGI(TAG, "Timepoint raw: %s", str_timepoint_raw);
+                this->timepoint_sensor_raw_->publish_state(str_timepoint_raw);
                 break;
             }
 

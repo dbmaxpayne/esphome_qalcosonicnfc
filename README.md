@@ -96,6 +96,12 @@ qalcosonicnfc:
       # Home Assistant requires a timezone to recognize a timestamp as a propper time and date instead of just text
       # if no timezone can be found, the time point will be emitted a plain text to Home Assistant
     disabled_by_default: True
+  timepoint_sensor_raw:
+    # shows the time received by the meter as a string without any conversions
+    # format is YYYY-MM-DD HH:MM
+    # it can be offset by one hour because the meter does not switch to/from DST
+    name: "Time point (raw)"
+    disabled_by_default: True
   operating_time_sensor:
     # in seconds
     name: "Operating time"

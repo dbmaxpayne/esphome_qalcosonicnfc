@@ -95,6 +95,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   sensor::Sensor *operating_time_sensor_{nullptr};
   sensor::Sensor *on_time_sensor_{nullptr};
   text_sensor::TextSensor *timepoint_sensor_{nullptr};
+  text_sensor::TextSensor *timepoint_sensor_raw_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
   text_sensor::TextSensor *serial_number_sensor_{nullptr};
   text_sensor::TextSensor *error_flags_raw_{nullptr};
@@ -127,6 +128,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   void set_operating_time_sensor(sensor::Sensor *operating_time_sensor) { operating_time_sensor_ = operating_time_sensor; }
   void set_on_time_sensor(sensor::Sensor *on_time_sensor) { on_time_sensor_ = on_time_sensor; }
   void set_timepoint_sensor(text_sensor::TextSensor *timepoint_sensor) { timepoint_sensor_ = timepoint_sensor; }
+  void set_timepoint_sensor_raw(text_sensor::TextSensor *timepoint_sensor_raw) { timepoint_sensor_raw_ = timepoint_sensor_raw; }
   void set_raw_data_sensor(text_sensor::TextSensor *raw_data_sensor) { raw_data_sensor_ = raw_data_sensor; }
   void set_serial_number_sensor(text_sensor::TextSensor *serial_number_sensor) { serial_number_sensor_ = serial_number_sensor; }
   void set_error_flags_raw(text_sensor::TextSensor *error_flags_raw) { error_flags_raw_ = error_flags_raw; }

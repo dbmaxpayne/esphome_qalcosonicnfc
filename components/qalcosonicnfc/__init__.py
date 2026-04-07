@@ -38,6 +38,7 @@ CONF_BATTERY_LEVEL_SENSOR = "battery_level_sensor"
 CONF_OPERATING_TIME_SENSOR = "operating_time_sensor"
 CONF_ON_TIME_SENSOR = "on_time_sensor"
 CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
+CONF_TIMEPOINT_SENSOR_RAW = "timepoint_sensor_raw"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
 CONF_SERIAL_NUMBER_SENSOR = "serial_number_sensor"
 CONF_ERROR_FLAGS_RAW = "error_flags_raw"
@@ -180,6 +181,8 @@ CONFIG_SCHEMA = (
             }).extend(
                 text_sensor.text_sensor_schema()
             ),
+            cv.Optional(CONF_TIMEPOINT_SENSOR_RAW, default={ CONF_NAME: "Time point (raw)",}): text_sensor.text_sensor_schema(
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
             cv.Optional(CONF_ERROR_RECONFIGURATION_WARNING, default={ CONF_NAME: "Reconfiguration warning",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
@@ -292,6 +295,9 @@ async def to_code(config):
     cg.add(var.set_timepoint_sensor(timepoint_sensor))
     if tz:
         cg.add(var.set_timezone(tz))
+
+    timepoint_sensor_raw = await text_sensor.new_text_sensor(config.get(CONF_TIMEPOINT_SENSOR_RAW))
+    cg.add(var.set_timepoint_sensor_raw(timepoint_sensor_raw))
 
     raw_data_sensor = await text_sensor.new_text_sensor(config.get(CONF_RAW_DATA_SENSOR))
     cg.add(var.set_raw_data_sensor(raw_data_sensor))
