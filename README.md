@@ -110,6 +110,13 @@ qalcosonicnfc:
     # in seconds
     name: "On time"
     disabled_by_default: True
+
+  # Meter ID is derived from the M-Bus header and used to identify the meter during bus communication
+  # Serial number is a separate data field, that may not always be present, and is used for billing purposes
+  # When both are available, they are usually the same
+  meter_id_sensor:
+    # eight digits as text
+    name: "Meter ID"
   serial_number_sensor:
     # eight digits as text
     name: "Serial number"

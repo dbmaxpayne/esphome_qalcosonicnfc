@@ -41,6 +41,7 @@ CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
 CONF_TIMEPOINT_SENSOR_RAW = "timepoint_sensor_raw"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
 CONF_SERIAL_NUMBER_SENSOR = "serial_number_sensor"
+CONF_METER_ID_SENSOR = "meter_id_sensor"
 CONF_ERROR_FLAGS_RAW = "error_flags_raw"
 CONF_ERROR_RECONFIGURATION_WARNING = "error_reconfiguration_warning"
 CONF_ERROR_NO_CONSUMPTION = "error_no_consumption"
@@ -159,6 +160,8 @@ CONFIG_SCHEMA = (
                 state_class=STATE_CLASS_MEASUREMENT,
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_SERIAL_NUMBER_SENSOR, default={ CONF_NAME: "Serial number",}): text_sensor.text_sensor_schema(
+                icon="mdi:numeric",),
+            cv.Optional(CONF_METER_ID_SENSOR, default={ CONF_NAME: "Meter ID",}): text_sensor.text_sensor_schema(
                 icon="mdi:numeric",),
             cv.Optional(CONF_ERROR_FLAGS_RAW, default={ CONF_NAME: "Error flags raw",}): text_sensor.text_sensor_schema(
                 icon="mdi:alert",
@@ -304,6 +307,9 @@ async def to_code(config):
     
     serial_number_sensor = await text_sensor.new_text_sensor(config.get(CONF_SERIAL_NUMBER_SENSOR))
     cg.add(var.set_serial_number_sensor(serial_number_sensor))
+    
+    meter_id_sensor = await text_sensor.new_text_sensor(config.get(CONF_METER_ID_SENSOR))
+    cg.add(var.set_meter_id_sensor(meter_id_sensor))
 
     error_flags_raw = await text_sensor.new_text_sensor(config.get(CONF_ERROR_FLAGS_RAW))
     cg.add(var.set_error_flags_raw(error_flags_raw))

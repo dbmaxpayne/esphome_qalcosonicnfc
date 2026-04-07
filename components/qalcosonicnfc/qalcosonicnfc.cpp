@@ -332,6 +332,17 @@ void QalcosonicNfc::publishSensors() {
         payload_offset += 12;
     }
 
+    // get id number from header
+    uint32_t idNumber = 0;
+    idNumber = (readBuffer[start_idx + 10] >> 4) * 10000000 + (readBuffer[start_idx + 10] & 0x0F) * 1000000 +
+               (readBuffer[start_idx + 9] >> 4) * 100000 + (readBuffer[start_idx + 9] & 0x0F) * 10000 +
+               (readBuffer[start_idx + 8] >> 4) * 1000 + (readBuffer[start_idx + 8] & 0x0F) * 100 +
+               (readBuffer[start_idx + 7] >> 4) * 10 + (readBuffer[start_idx + 7] & 0x0F);
+    char str_id_number[9]; 
+    snprintf(str_id_number, sizeof(str_id_number), "%08u", idNumber);
+    ESP_LOGI(TAG, "ID Number: %s", str_id_number);
+    this->meter_id_sensor_->publish_state(str_id_number);
+
     uint8_t *buf = this->readBuffer + payload_offset;
     uint8_t *end_buf = this->readBuffer + start_idx + 4 + l_field;
 
