@@ -72,6 +72,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   std::string timezone_;
   bool errorFlag;
   uint8_t errorCount;
+  uint8_t consecutive_errors_limit_{5};
   uint8_t meterUid[8];
   uint8_t *readBuffer; // Buffer for any data that is received
   uint16_t responseLength; // Stores the actual length of the received data
@@ -116,8 +117,10 @@ class QalcosonicNfc : public esphome::PollingComponent {
   binary_sensor::BinarySensor *error_reverse_flow_{nullptr};
   binary_sensor::BinarySensor *error_flow_rate_{nullptr};
   binary_sensor::BinarySensor *error_freeze_alert_{nullptr};
+  sensor::Sensor *consecutive_errors_sensor_{nullptr};
   void publishSensors();
   void publishSensorsAsFailed();
+  void handleReadoutFailed();
 
  public:
   QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
@@ -152,6 +155,8 @@ class QalcosonicNfc : public esphome::PollingComponent {
   void set_error_reverse_flow(binary_sensor::BinarySensor *error_reverse_flow) { error_reverse_flow_ = error_reverse_flow; }
   void set_error_flow_rate(binary_sensor::BinarySensor *error_flow_rate) { error_flow_rate_ = error_flow_rate; }
   void set_error_freeze_alert(binary_sensor::BinarySensor *error_freeze_alert) { error_freeze_alert_ = error_freeze_alert; }
+  void set_consecutive_errors_sensor(sensor::Sensor *consecutive_errors_sensor) { consecutive_errors_sensor_ = consecutive_errors_sensor; }
+  void set_consecutive_errors_limit(uint8_t consecutive_errors_limit) { consecutive_errors_limit_ = consecutive_errors_limit; }
   void set_timezone(const std::string &timezone) { timezone_ = timezone; }
   void setup() override;
   void loop() override;
