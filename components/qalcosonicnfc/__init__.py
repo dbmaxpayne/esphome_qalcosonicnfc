@@ -243,7 +243,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_SCK_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_NSS_PIN): pins.gpio_output_pin_schema,
-            cv.Required(CONF_PN5180_BUSY_PIN): pins.gpio_output_pin_schema,
+            cv.Required(CONF_PN5180_BUSY_PIN): pins.gpio_input_pin_schema,
             cv.Required(CONF_PN5180_RST_PIN): pins.gpio_output_pin_schema
         }
     )
