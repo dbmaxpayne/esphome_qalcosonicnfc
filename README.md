@@ -1,3 +1,9 @@
+# Contribution
+This is a fork of [dbmaxpayne/esphome_qalcosonicnfc ](https://github.com/dbmaxpayne/esphome_qalcosonicnfc.git).
+
+# Changes to the original repo
+Since a lot of pull requests and Issues have not been merged or looked at, I decided to create a public fork including all pull requests until 15/04/2026. Since some pull requests overlapped each other, I merged them. Feel free to create issues and pull requests. I definitely need AI to look over your features and fixes, since I am not a developer.
+
 # esphome_qalcosonicnfc
 ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 NFC chip
 
@@ -264,6 +270,19 @@ qalcosonicnfc:
 This is especially useful for confirming the device is still alive and actively reading the meter.
 
 > **Note:** `force_update: true` applies to numeric `sensor` types only. It does **not** apply to `text_sensor` types (e.g. `timepoint_sensor`, `raw_data_sensor`).
+
+# NFC Antenna
+Thanks to [@sstadlberger ](https://github.com/sstadlberger)! He was able to find an FCC document showing the exact positon of the NFC antenna. 
+
+<img src="./media/axioma_antenna.jpg" width="300" />
+
+Original document: https://device.report/m/a096f06eda0d81b7ace0d57c447394fcbea40432b4325c1f500caaf8407e5b0f
+
+# 3D Print for the water meter
+
+It clips onto the meter and positions the PN5180 antenna correctly for reliable readouts. The NFC module and ESP32 are held in place with hot glue — I intentionally avoided screws near the antenna to keep things simple and not risk interference. The design isn't perfect, but it's been working reliably for me.
+
+You can find it on Thingiverse: https://www.thingiverse.com/thing:7331650
 
 ## Images
 <img src="./media/esp32_pn5180_1.jpg" width="200" /> <img src="./media/esp32_pn5180_2.jpg" width="200" /> <img src="./media/esp32_pn5180_3.jpg" width="200" />
