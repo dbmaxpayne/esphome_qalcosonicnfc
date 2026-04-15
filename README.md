@@ -276,7 +276,7 @@ This is especially useful for confirming the device is still alive and actively 
 # NFC Antenna
 Thanks to [@sstadlberger ](https://github.com/sstadlberger)! He was able to find an FCC document showing the exact positon of the NFC antenna. 
 
-<img src="./media/axioma_antenna.jpg" width="300" />
+<img src="./media/axioma_antenna.png" width="300" />
 
 Original document: https://device.report/m/a096f06eda0d81b7ace0d57c447394fcbea40432b4325c1f500caaf8407e5b0f
 
