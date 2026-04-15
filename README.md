@@ -4,6 +4,8 @@ This is a fork of [dbmaxpayne/esphome_qalcosonicnfc ](https://github.com/dbmaxpa
 # Changes to the original repo
 Since a lot of pull requests and Issues have not been merged or looked at, I decided to create a public fork including all pull requests until 15/04/2026. Since some pull requests overlapped each other, I merged them. Feel free to create issues and pull requests. I definitely need AI to look over your features and fixes, since I am not a developer.
 
+I adjusted the pin layout to my needs. So check your pin layout!
+
 # esphome_qalcosonicnfc
 ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 NFC chip
 
