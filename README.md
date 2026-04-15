@@ -19,12 +19,15 @@ ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 N
 | VIN / 5V  | 5V         |
 | 3.3V      | 3.3V       |
 | GND       | GND        |
-| SCLK, 18  | SCLK       |
-| MISO, 19  | MISO       |
-| MOSI, 23  | MOSI       |
-| 14        | NSS        |
-| 16        | BUSY       |
-| 17        | RST        |
+| SCLK, 12  | SCLK       |
+| MISO, 13  | MISO       |
+| MOSI, 11  | MOSI       |
+| 10        | NSS        |
+| 14        | BUSY       |
+| 21        | RST        |
+
+## Power connection on some ESP boards
+If your antenna is not getting a signal at all, check your ESP board. In my case, there was an IN/OUT solder pad on the board I had to connect together. With this, your main USB power is directly connected to your NFC board.
 
 ## Special Thanks
 Special thanks goes to @ATrappmann for his PN5180-Library (https://github.com/ATrappmann/PN5180-Library).
