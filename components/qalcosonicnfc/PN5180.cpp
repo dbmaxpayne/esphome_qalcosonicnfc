@@ -74,7 +74,6 @@ void PN5180::begin() {
   SPIComponent_ = new spi::SPIComponent();
   SPIDevice_    = new spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                      spi::DATA_RATE_5MHZ>;
-  SPIComponent_->set_component_source(LOG_STR("spi"));
   SPIComponent_->set_clk(SCK_);
   SPIComponent_->set_miso(MISO_);
   SPIComponent_->set_mosi(MOSI_);
