@@ -69,6 +69,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   PN5180ISO15693* nfc_;
   bool errorFlag;
   uint8_t errorCount;
+  uint8_t consecutive_errors_limit_{5};
   uint8_t meterUid[8];
   uint8_t *readBuffer; // Buffer for any data that is received
   uint16_t responseLength; // Stores the actual length of the received data
@@ -91,8 +92,10 @@ class QalcosonicNfc : public esphome::PollingComponent {
   sensor::Sensor *battery_level_sensor_{nullptr};
   text_sensor::TextSensor *timepoint_sensor_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
+  sensor::Sensor *consecutive_errors_sensor_{nullptr};
   void publishSensors();
   void publishSensorsAsFailed();
+  void handleReadoutFailed();
 
  public:
   QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst);
@@ -105,6 +108,8 @@ class QalcosonicNfc : public esphome::PollingComponent {
   void set_battery_level_sensor(sensor::Sensor *battery_level_sensor) { battery_level_sensor_ = battery_level_sensor; }
   void set_timepoint_sensor(text_sensor::TextSensor *timepoint_sensor) { timepoint_sensor_ = timepoint_sensor; }
   void set_raw_data_sensor(text_sensor::TextSensor *raw_data_sensor) { raw_data_sensor_ = raw_data_sensor; }
+  void set_consecutive_errors_sensor(sensor::Sensor *consecutive_errors_sensor) { consecutive_errors_sensor_ = consecutive_errors_sensor; }
+  void set_consecutive_errors_limit(uint8_t consecutive_errors_limit) { consecutive_errors_limit_ = consecutive_errors_limit; }
   void setup() override;
   void loop() override;
   void update() override;

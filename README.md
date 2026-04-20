@@ -60,6 +60,9 @@ qalcosonicnfc:
   update_interval: 300s # How often should the component query the water meter for a value.
                         # Battery drain:
                         # 60s: ~ 1% per 75 days (added 10.02.2026, tested by dbmaxpayne)
+  consecutive_errors_limit: 5 # Optional. Default: 5. How many consecutive failed readout
+                              # attempts are allowed before sensors are set to unavailable (NAN).
+                              # Set to 0 to never set sensors to unavailable.
   pn5180_mosi_pin: GPIO23
   pn5180_miso_pin: GPIO19
   pn5180_sck_pin:  GPIO18
@@ -89,6 +92,13 @@ qalcosonicnfc:
   # You should not need it and can disable it.
   raw_data_sensor:
     name: "M-BUS Rohdaten"
+    disabled_by_default: True
+  # Sensor that indicates how many consecutive readout attempts have failed.
+  # It will be 0 on a successful readout and increment on each failure.
+  # Note: This value can exceed the consecutive_errors_limit, as the limit
+  # only defines when the main sensors are set to unavailable (NAN).
+  consecutive_errors_sensor:
+    name: "Consecutive Errors"
     disabled_by_default: True
 
 # Enable logging

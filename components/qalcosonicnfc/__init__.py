@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
 from esphome.components import sensor, text_sensor#, spi
-from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY
+from esphome.const import CONF_ID, CONF_NAME, CONF_PROTOCOL, CONF_UPDATE_INTERVAL, UNIT_CUBIC_METER, UNIT_CUBIC_METER_PER_HOUR, UNIT_CELSIUS, UNIT_PERCENT, ICON_WATER, ICON_THERMOMETER, ICON_BATTERY, STATE_CLASS_TOTAL_INCREASING, STATE_CLASS_MEASUREMENT, DEVICE_CLASS_WATER, DEVICE_CLASS_TEMPERATURE, DEVICE_CLASS_BATTERY, ENTITY_CATEGORY_DIAGNOSTIC
 
 CODEOWNERS = ["@dbmaxpayne"]
 
@@ -28,6 +28,8 @@ CONF_EXTERNAL_TEMPERATURE_SENSOR = "external_temperature_sensor"
 CONF_BATTERY_LEVEL_SENSOR = "battery_level_sensor"
 CONF_TIMEPOINT_SENSOR = "timepoint_sensor"
 CONF_RAW_DATA_SENSOR = "raw_data_sensor"
+CONF_CONSECUTIVE_ERRORS_SENSOR = "consecutive_errors_sensor"
+CONF_CONSECUTIVE_ERRORS_LIMIT = "consecutive_errors_limit"
 
 qalcosonicnfc_ns = cg.esphome_ns.namespace("qalcosonicnfc")
 QalcosonicNfc = qalcosonicnfc_ns.class_("QalcosonicNfc", cg.PollingComponent)
@@ -80,6 +82,13 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_BATTERY,),
             cv.Optional(CONF_RAW_DATA_SENSOR, default={ CONF_NAME: "Raw M-BUS Data",}): text_sensor.text_sensor_schema(),
             cv.Optional(CONF_TIMEPOINT_SENSOR, default={ CONF_NAME: "Timepoint",}): text_sensor.text_sensor_schema(),
+            cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR, default={ CONF_NAME: "Consecutive Errors",}): sensor.sensor_schema(
+                icon="mdi:alert-circle",
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            ),
+            cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_SCK_PIN): pins.gpio_output_pin_schema,
@@ -128,3 +137,8 @@ async def to_code(config):
     
     raw_data_sensor = await text_sensor.new_text_sensor(config.get(CONF_RAW_DATA_SENSOR))
     cg.add(var.set_raw_data_sensor(raw_data_sensor))
+
+    consecutive_errors_sensor = await sensor.new_sensor(config.get(CONF_CONSECUTIVE_ERRORS_SENSOR))
+    cg.add(var.set_consecutive_errors_sensor(consecutive_errors_sensor))
+
+    cg.add(var.set_consecutive_errors_limit(config[CONF_CONSECUTIVE_ERRORS_LIMIT]))
