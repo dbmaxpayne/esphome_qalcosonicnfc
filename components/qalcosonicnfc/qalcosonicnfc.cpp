@@ -189,11 +189,13 @@ void QalcosonicNfc::loop() {
 void QalcosonicNfc::update() {
   ESP_LOGD(TAG, "Update cycle has been started");
   
-  if (!this->nfc_->setupRF()) return;
+  if (!this->nfc_->setupRF()) {
+    this->handleReadoutFailed();
+    return;
+  }
   
   if (this->errorFlag) {
-    this->errorCount++;
-    ESP_LOGD(TAG, "Error flag is set. Consecutive errors: %u", this->errorCount);
+    ESP_LOGD(TAG, "Previous cycle failed. Trying to reset PN5180...");
     uint32_t irqStatus = this->nfc_->getIRQStatus();
     this->nfc_->printIRQStatus(irqStatus);
 
@@ -201,15 +203,18 @@ void QalcosonicNfc::update() {
       ESP_LOGI(TAG, "*** Water meter not found or did not reply!");
     }
     
-    if (this->errorCount > 5) publishSensorsAsFailed();
-    
-    if (!this->nfc_->reset()) return;
-    if (!this->nfc_->setupRF()) return;
+    if (!this->nfc_->reset()) {
+      this->handleReadoutFailed();
+      return;
+    }
+    if (!this->nfc_->setupRF()) {
+      this->handleReadoutFailed();
+      return;
+    }
 
     this->errorFlag = false;
   }
   else {
-      this->errorCount = 0;
       this->status_clear_error();
   }
   
@@ -218,7 +223,7 @@ void QalcosonicNfc::update() {
   ISO15693ErrorCode rc = this->nfc_->getInventory(this->meterUid);
   if (ISO15693_EC_OK != rc) {
     ESP_LOGE(TAG, "Error in getInventory: %s", this->nfc_->ISO15693ErrorCodeToStr(rc));
-    this->errorFlag = true;
+    this->handleReadoutFailed();
     this->nfc_->setRF_off();
     return;
   }
@@ -229,12 +234,14 @@ void QalcosonicNfc::update() {
   // If pin V_EH is actually connected to anything has not been verified
   // At least this should save energy consumed by the ST25 chip itself
   if(!this->st25ReadDynConfig(ST25_EH_CTRL_DYN)) {
+    this->handleReadoutFailed();
     this->nfc_->setRF_off();
     return;
   }
   if(~this->readBuffer[1] & ST25_EH_EN || ~this->readBuffer[1] & ST25_EH_ON || ~this->readBuffer[1] & ST25_FIELD_ON || ~this->readBuffer[1] & ST25_VCC_ON) {
       ESP_LOGE(TAG, "ST25: Energy harvesting is disabled or not available!");
       ESP_LOGE(TAG, "ST25: EH_EN=%u, EH_ON=%u, FIELD_ON=%u, VCC_ON=%u", this->readBuffer[1] & ST25_EH_EN, (this->readBuffer[1] & ST25_EH_ON) >> 1, (readBuffer[1] & ST25_FIELD_ON) >> 2, (this->readBuffer[1] & ST25_VCC_ON) >> 3);
+      this->handleReadoutFailed();
       this->nfc_->setRF_off();
       return;
   }
@@ -242,6 +249,7 @@ void QalcosonicNfc::update() {
   
   App.feed_wdt();
   if(!this->st25MailboxEnable()) {
+      this->handleReadoutFailed();
       this->nfc_->setRF_off();
       return;
   }
@@ -253,20 +261,25 @@ void QalcosonicNfc::update() {
    
    App.feed_wdt();
    if(!issueMeterCommand(commandResetApp, sizeof(commandResetApp)/sizeof(commandResetApp[0]))) {
+      this->handleReadoutFailed();
       this->nfc_->setRF_off();
       return;
     }
-    App.feed_wdt();
+   App.feed_wdt();
    if(!issueMeterCommand(commandGetData1, sizeof(commandGetData1)/sizeof(commandGetData1[0]))) {
+      this->handleReadoutFailed();
       this->nfc_->setRF_off();
       return;
     }
    
    if(!this->validateMbusFrame()) {
+      this->handleReadoutFailed();
       this->nfc_->setRF_off();
       return;
     }
    
+   this->errorCount = 0;
+   this->consecutive_errors_sensor_->publish_state(0);
    this->publishSensors();
    
   
@@ -615,6 +628,16 @@ void QalcosonicNfc::publishSensorsAsFailed() {
     this->error_freeze_alert_->publish_state(false);
 
     this->status_set_error();
+}
+
+void QalcosonicNfc::handleReadoutFailed() {
+    this->errorFlag = true;
+    this->errorCount++;
+    ESP_LOGD(TAG, "Readout failed. Consecutive errors: %u", this->errorCount);
+    this->consecutive_errors_sensor_->publish_state(this->errorCount);
+    if (this->consecutive_errors_limit_ > 0 && this->errorCount >= this->consecutive_errors_limit_) {
+        this->publishSensorsAsFailed();
+    }
 }
 
 bool QalcosonicNfc::validateMbusFrame() {

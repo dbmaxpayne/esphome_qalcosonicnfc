@@ -60,6 +60,9 @@ qalcosonicnfc:
   update_interval: 300s # How often should the component query the water meter for a value.
                         # Battery drain:
                         # 60s: ~ 1% per 75 days (added 10.02.2026, tested by dbmaxpayne)
+  consecutive_errors_limit: 5 # Optional. Default: 5. How many consecutive failed readout
+                              # attempts are allowed before sensors are set to unavailable (NAN).
+                              # Set to 0 to never set sensors to unavailable.
   pn5180_mosi_pin: GPIO23
   pn5180_miso_pin: GPIO19
   pn5180_sck_pin:  GPIO18
@@ -210,6 +213,13 @@ qalcosonicnfc:
   raw_data_sensor:
     name: "M-BUS raw data"
     disabled_by_default: True
+  # Sensor that indicates how many consecutive readout attempts have failed.
+  # It will be 0 on a successful readout and increment on each failure.
+  # Note: This value can exceed the consecutive_errors_limit, as the limit
+  # only defines when the main sensors are set to unavailable (NAN).
+  consecutive_errors_sensor:
+    name: "Consecutive Errors"
+    disabled_by_default: True
 
 # Enable logging
 logger:
@@ -240,6 +250,30 @@ wifi:
 
 captive_portal:
 ```
+
+## Sensor Update Behavior (`force_update`)
+
+By default, ESPHome numeric sensors only push an update to Home Assistant **when the value changes**. This means if your
+water usage stays the same between two readout cycles, Home Assistant will not receive a new data point — which can make 
+it look like the sensor is stale or not working.
+
+To force a sensor to publish its value on **every readout cycle**, regardless of whether it changed, add `force_update: true` 
+to the sensor:
+
+```yaml
+qalcosonicnfc:
+  water_usage_sensor:
+    name: "Water Usage"
+    force_update: true
+  water_flow_sensor:
+    name: "Water Flow"
+    force_update: true
+  # ... and so on for any other sensor
+```
+
+This is especially useful for confirming the device is still alive and actively reading the meter.
+
+> **Note:** `force_update: true` applies to numeric `sensor` types only. It does **not** apply to `text_sensor` types (e.g. `timepoint_sensor`, `raw_data_sensor`).
 
 ## Images
 <img src="./media/esp32_pn5180_1.jpg" width="200" /> <img src="./media/esp32_pn5180_2.jpg" width="200" /> <img src="./media/esp32_pn5180_3.jpg" width="200" />

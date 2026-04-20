@@ -59,6 +59,8 @@ CONF_ERROR_NO_SIGNAL = "error_no_signal"
 CONF_ERROR_REVERSE_FLOW = "error_reverse_flow"
 CONF_ERROR_FLOW_RATE = "error_flow_rate"
 CONF_ERROR_FREEZE_ALERT = "error_freeze_alert"
+CONF_CONSECUTIVE_ERRORS_SENSOR = "consecutive_errors_sensor"
+CONF_CONSECUTIVE_ERRORS_LIMIT = "consecutive_errors_limit"
 
 qalcosonicnfc_ns = cg.esphome_ns.namespace("qalcosonicnfc")
 QalcosonicNfc = qalcosonicnfc_ns.class_("QalcosonicNfc", cg.PollingComponent)
@@ -239,11 +241,18 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_ERROR_FREEZE_ALERT, default={ CONF_NAME: "Freeze alert",}): binary_sensor.binary_sensor_schema(
                 device_class=DEVICE_CLASS_PROBLEM,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,),
+            cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR, default={ CONF_NAME: "Consecutive Errors",}): sensor.sensor_schema(
+                icon="mdi:alert-circle",
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            ),
+            cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
             cv.Required(CONF_PN5180_MOSI_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_MISO_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_SCK_PIN): pins.gpio_output_pin_schema,
             cv.Required(CONF_PN5180_NSS_PIN): pins.gpio_output_pin_schema,
-            cv.Required(CONF_PN5180_BUSY_PIN): pins.gpio_output_pin_schema,
+            cv.Required(CONF_PN5180_BUSY_PIN): pins.gpio_input_pin_schema,
             cv.Required(CONF_PN5180_RST_PIN): pins.gpio_output_pin_schema
         }
     )
@@ -372,3 +381,7 @@ async def to_code(config):
 
     error_freeze_alert = await binary_sensor.new_binary_sensor(config.get(CONF_ERROR_FREEZE_ALERT))
     cg.add(var.set_error_freeze_alert(error_freeze_alert))
+    consecutive_errors_sensor = await sensor.new_sensor(config.get(CONF_CONSECUTIVE_ERRORS_SENSOR))
+    cg.add(var.set_consecutive_errors_sensor(consecutive_errors_sensor))
+
+    cg.add(var.set_consecutive_errors_limit(config[CONF_CONSECUTIVE_ERRORS_LIMIT]))
