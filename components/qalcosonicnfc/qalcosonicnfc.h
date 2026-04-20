@@ -18,7 +18,9 @@
 //
 #pragma once
 
+#include <string>
 #include "esphome/core/component.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include <esphome/core/hal.h>
@@ -67,6 +69,7 @@ class QalcosonicNfc : public esphome::PollingComponent {
   GPIOPin *BUSY_;
   GPIOPin *RST_;
   PN5180ISO15693* nfc_;
+  std::string timezone_;
   bool errorFlag;
   uint8_t errorCount;
   uint8_t consecutive_errors_limit_{5};
@@ -90,8 +93,30 @@ class QalcosonicNfc : public esphome::PollingComponent {
   sensor::Sensor *water_temperature_sensor_{nullptr};
   sensor::Sensor *external_temperature_sensor_{nullptr};
   sensor::Sensor *battery_level_sensor_{nullptr};
+  sensor::Sensor *operating_time_sensor_{nullptr};
+  sensor::Sensor *on_time_sensor_{nullptr};
+  text_sensor::TextSensor *meter_version_sensor_{nullptr};
   text_sensor::TextSensor *timepoint_sensor_{nullptr};
+  text_sensor::TextSensor *timepoint_sensor_raw_{nullptr};
   text_sensor::TextSensor *raw_data_sensor_{nullptr};
+  text_sensor::TextSensor *serial_number_sensor_{nullptr};
+  text_sensor::TextSensor *meter_id_sensor_{nullptr};
+  text_sensor::TextSensor *manufacturer_id_sensor_{nullptr};
+  text_sensor::TextSensor *error_flags_raw_{nullptr};
+  binary_sensor::BinarySensor *error_reconfiguration_warning_{nullptr};
+  binary_sensor::BinarySensor *error_no_consumption_{nullptr};
+  binary_sensor::BinarySensor *error_damage_meter_housing_{nullptr};
+  binary_sensor::BinarySensor *error_calculator_hardware_failure_{nullptr};
+  binary_sensor::BinarySensor *error_leakage_{nullptr};
+  binary_sensor::BinarySensor *error_burst_{nullptr};
+  binary_sensor::BinarySensor *error_optical_communication_{nullptr};
+  binary_sensor::BinarySensor *error_low_battery_{nullptr};
+  binary_sensor::BinarySensor *error_software_failure_{nullptr};
+  binary_sensor::BinarySensor *error_hardware_failure_{nullptr};
+  binary_sensor::BinarySensor *error_no_signal_{nullptr};
+  binary_sensor::BinarySensor *error_reverse_flow_{nullptr};
+  binary_sensor::BinarySensor *error_flow_rate_{nullptr};
+  binary_sensor::BinarySensor *error_freeze_alert_{nullptr};
   sensor::Sensor *consecutive_errors_sensor_{nullptr};
   void publishSensors();
   void publishSensorsAsFailed();
@@ -106,8 +131,31 @@ class QalcosonicNfc : public esphome::PollingComponent {
   void set_water_temperature_sensor(sensor::Sensor *water_temperature_sensor) { water_temperature_sensor_ = water_temperature_sensor; }
   void set_external_temperature_sensor(sensor::Sensor *external_temperature_sensor) { external_temperature_sensor_ = external_temperature_sensor; }
   void set_battery_level_sensor(sensor::Sensor *battery_level_sensor) { battery_level_sensor_ = battery_level_sensor; }
+  void set_operating_time_sensor(sensor::Sensor *operating_time_sensor) { operating_time_sensor_ = operating_time_sensor; }
+  void set_on_time_sensor(sensor::Sensor *on_time_sensor) { on_time_sensor_ = on_time_sensor; }
+  void set_meter_version_sensor(text_sensor::TextSensor *meter_version_sensor) { meter_version_sensor_ = meter_version_sensor; }
   void set_timepoint_sensor(text_sensor::TextSensor *timepoint_sensor) { timepoint_sensor_ = timepoint_sensor; }
+  void set_timepoint_sensor_raw(text_sensor::TextSensor *timepoint_sensor_raw) { timepoint_sensor_raw_ = timepoint_sensor_raw; }
   void set_raw_data_sensor(text_sensor::TextSensor *raw_data_sensor) { raw_data_sensor_ = raw_data_sensor; }
+  void set_serial_number_sensor(text_sensor::TextSensor *serial_number_sensor) { serial_number_sensor_ = serial_number_sensor; }
+  void set_meter_id_sensor(text_sensor::TextSensor *meter_id_sensor) { meter_id_sensor_ = meter_id_sensor; }
+  void set_manufacturer_id_sensor(text_sensor::TextSensor *manufacturer_id_sensor) { manufacturer_id_sensor_ = manufacturer_id_sensor; }
+  void set_error_flags_raw(text_sensor::TextSensor *error_flags_raw) { error_flags_raw_ = error_flags_raw; }
+  void set_error_reconfiguration_warning(binary_sensor::BinarySensor *error_reconfiguration_warning) { error_reconfiguration_warning_ = error_reconfiguration_warning; }
+  void set_error_no_consumption(binary_sensor::BinarySensor *error_no_consumption) { error_no_consumption_ = error_no_consumption; }
+  void set_error_damage_meter_housing(binary_sensor::BinarySensor *error_damage_meter_housing) { error_damage_meter_housing_ = error_damage_meter_housing; }
+  void set_error_calculator_hardware_failure(binary_sensor::BinarySensor *error_calculator_hardware_failure) { error_calculator_hardware_failure_ = error_calculator_hardware_failure; }
+  void set_error_leakage(binary_sensor::BinarySensor *error_leakage) { error_leakage_ = error_leakage; }
+  void set_error_burst(binary_sensor::BinarySensor *error_burst) { error_burst_ = error_burst; }
+  void set_error_optical_communication(binary_sensor::BinarySensor *error_optical_communication) { error_optical_communication_ = error_optical_communication; }
+  void set_error_low_battery(binary_sensor::BinarySensor *error_low_battery) { error_low_battery_ = error_low_battery; }
+  void set_error_software_failure(binary_sensor::BinarySensor *error_software_failure) { error_software_failure_ = error_software_failure; }
+  void set_error_hardware_failure(binary_sensor::BinarySensor *error_hardware_failure) { error_hardware_failure_ = error_hardware_failure; }
+  void set_error_no_signal(binary_sensor::BinarySensor *error_no_signal) { error_no_signal_ = error_no_signal; }
+  void set_error_reverse_flow(binary_sensor::BinarySensor *error_reverse_flow) { error_reverse_flow_ = error_reverse_flow; }
+  void set_error_flow_rate(binary_sensor::BinarySensor *error_flow_rate) { error_flow_rate_ = error_flow_rate; }
+  void set_error_freeze_alert(binary_sensor::BinarySensor *error_freeze_alert) { error_freeze_alert_ = error_freeze_alert; }
+  void set_timezone(const std::string &timezone) { timezone_ = timezone; }
   void set_consecutive_errors_sensor(sensor::Sensor *consecutive_errors_sensor) { consecutive_errors_sensor_ = consecutive_errors_sensor; }
   void set_consecutive_errors_limit(uint8_t consecutive_errors_limit) { consecutive_errors_limit_ = consecutive_errors_limit; }
   void setup() override;
