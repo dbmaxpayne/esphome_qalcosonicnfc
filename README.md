@@ -275,5 +275,17 @@ This is especially useful for confirming the device is still alive and actively 
 
 > **Note:** `force_update: true` applies to numeric `sensor` types only. It does **not** apply to `text_sensor` types (e.g. `timepoint_sensor`, `raw_data_sensor`).
 
+# NFC Antenna
+Thanks to [@sstadlberger ](https://github.com/sstadlberger)! He was able to find an FCC document showing the exact positon of the NFC antenna. 
+
+<img src="./media/axioma_antenna.png" width="300" />
+
+Original document: https://device.report/m/a096f06eda0d81b7ace0d57c447394fcbea40432b4325c1f500caaf8407e5b0f
+
+Saved document: [media/axioma_q1_fcc.pdf](https://github.com/PottiMc/esphome_qalcosonicnfc/blob/908d4b05286beda7aa28f44370e2f065a9d310a2/media/axioma_q1_fcc.pdf)
+
+# 3D Print for the Water Meter
+See issue: https://github.com/dbmaxpayne/esphome_qalcosonicnfc/issues/19 (Thanks to [@PottiMc](https://github.com/PottiMc)), 
+
 ## Images
 <img src="./media/esp32_pn5180_1.jpg" width="200" /> <img src="./media/esp32_pn5180_2.jpg" width="200" /> <img src="./media/esp32_pn5180_3.jpg" width="200" />
