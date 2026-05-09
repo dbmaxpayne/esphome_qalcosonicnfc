@@ -126,8 +126,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Required(CONF_PN5180_NSS_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_PN5180_BUSY_PIN): pins.gpio_input_pin_schema,
         cv.Required(CONF_PN5180_RST_PIN): pins.gpio_output_pin_schema,
-        # Hier ist die wichtige Änderung: cv.maybe_simple_value stellt sicher,
-        # dass die Sensoren korrekt mit IDs initialisiert werden.
+        cv.Optional(CONF_TIMEZONE): validate_tz,
+        # Numeric sensors
         cv.Optional(CONF_WATER_USAGE_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_WATER_USAGE_POSITIVE_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_WATER_USAGE_NEGATIVE_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
@@ -135,8 +135,34 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_WATER_TEMPERATURE_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_EXTERNAL_TEMPERATURE_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_BATTERY_LEVEL_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
+        cv.Optional(CONF_OPERATING_TIME_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
+        cv.Optional(CONF_ON_TIME_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_CONSECUTIVE_ERRORS_SENSOR): sensor.sensor_schema().extend(cv.Schema({cv.GenerateID(): cv.declare_id(sensor.Sensor)})),
         cv.Optional(CONF_CONSECUTIVE_ERRORS_LIMIT, default=5): cv.uint8_t,
+        # Text sensors
+        cv.Optional(CONF_METER_VERSION_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_TIMEPOINT_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_TIMEPOINT_SENSOR_RAW): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_RAW_DATA_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_SERIAL_NUMBER_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_METER_ID_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_MANUFACTURER_ID_SENSOR): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_ERROR_FLAGS_RAW): text_sensor.text_sensor_schema(),
+        # Binary sensors
+        cv.Optional(CONF_ERROR_RECONFIGURATION_WARNING): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_NO_CONSUMPTION): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_DAMAGE_METER_HOUSING): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_CALCULATOR_HARDWARE_FAILURE): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_LEAKAGE): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_BURST): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_OPTICAL_COMMUNICATION): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_LOW_BATTERY): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_SOFTWARE_FAILURE): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_HARDWARE_FAILURE): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_NO_SIGNAL): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_REVERSE_FLOW): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_FLOW_RATE): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR_FREEZE_ALERT): binary_sensor.binary_sensor_schema(),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -147,12 +173,15 @@ async def to_code(config):
     pn5180_nss_pin = await cg.gpio_pin_expression(config[CONF_PN5180_NSS_PIN])
     pn5180_busy_pin = await cg.gpio_pin_expression(config[CONF_PN5180_BUSY_PIN])
     pn5180_rst_pin = await cg.gpio_pin_expression(config[CONF_PN5180_RST_PIN])
-    
+
     var = cg.new_Pvariable(config[CONF_ID], pn5180_mosi_pin, pn5180_miso_pin, pn5180_sck_pin, pn5180_nss_pin, pn5180_busy_pin, pn5180_rst_pin)
     await cg.register_component(var, config)
     cg.add(var.set_update_interval(config[CONF_UPDATE_INTERVAL]))
 
-    # Sicherheits-Check für jeden Sensor: Nur erstellen, wenn er in der Config existiert
+    if CONF_TIMEZONE in config:
+        cg.add(var.set_timezone(config[CONF_TIMEZONE]))
+
+    # Numeric sensors
     for conf_key, setter in [
         (CONF_WATER_USAGE_SENSOR, var.set_water_usage_sensor),
         (CONF_WATER_USAGE_POSITIVE_SENSOR, var.set_water_usage_positive_sensor),
@@ -161,10 +190,48 @@ async def to_code(config):
         (CONF_WATER_TEMPERATURE_SENSOR, var.set_water_temperature_sensor),
         (CONF_EXTERNAL_TEMPERATURE_SENSOR, var.set_external_temperature_sensor),
         (CONF_BATTERY_LEVEL_SENSOR, var.set_battery_level_sensor),
+        (CONF_OPERATING_TIME_SENSOR, var.set_operating_time_sensor),
+        (CONF_ON_TIME_SENSOR, var.set_on_time_sensor),
         (CONF_CONSECUTIVE_ERRORS_SENSOR, var.set_consecutive_errors_sensor),
     ]:
         if conf_key in config:
             s = await sensor.new_sensor(config[conf_key])
+            cg.add(setter(s))
+
+    # Text sensors
+    for conf_key, setter in [
+        (CONF_METER_VERSION_SENSOR, var.set_meter_version_sensor),
+        (CONF_TIMEPOINT_SENSOR, var.set_timepoint_sensor),
+        (CONF_TIMEPOINT_SENSOR_RAW, var.set_timepoint_sensor_raw),
+        (CONF_RAW_DATA_SENSOR, var.set_raw_data_sensor),
+        (CONF_SERIAL_NUMBER_SENSOR, var.set_serial_number_sensor),
+        (CONF_METER_ID_SENSOR, var.set_meter_id_sensor),
+        (CONF_MANUFACTURER_ID_SENSOR, var.set_manufacturer_id_sensor),
+        (CONF_ERROR_FLAGS_RAW, var.set_error_flags_raw),
+    ]:
+        if conf_key in config:
+            s = await text_sensor.new_text_sensor(config[conf_key])
+            cg.add(setter(s))
+
+    # Binary sensors
+    for conf_key, setter in [
+        (CONF_ERROR_RECONFIGURATION_WARNING, var.set_error_reconfiguration_warning),
+        (CONF_ERROR_NO_CONSUMPTION, var.set_error_no_consumption),
+        (CONF_ERROR_DAMAGE_METER_HOUSING, var.set_error_damage_meter_housing),
+        (CONF_ERROR_CALCULATOR_HARDWARE_FAILURE, var.set_error_calculator_hardware_failure),
+        (CONF_ERROR_LEAKAGE, var.set_error_leakage),
+        (CONF_ERROR_BURST, var.set_error_burst),
+        (CONF_ERROR_OPTICAL_COMMUNICATION, var.set_error_optical_communication),
+        (CONF_ERROR_LOW_BATTERY, var.set_error_low_battery),
+        (CONF_ERROR_SOFTWARE_FAILURE, var.set_error_software_failure),
+        (CONF_ERROR_HARDWARE_FAILURE, var.set_error_hardware_failure),
+        (CONF_ERROR_NO_SIGNAL, var.set_error_no_signal),
+        (CONF_ERROR_REVERSE_FLOW, var.set_error_reverse_flow),
+        (CONF_ERROR_FLOW_RATE, var.set_error_flow_rate),
+        (CONF_ERROR_FREEZE_ALERT, var.set_error_freeze_alert),
+    ]:
+        if conf_key in config:
+            s = await binary_sensor.new_binary_sensor(config[conf_key])
             cg.add(setter(s))
 
     cg.add(var.set_consecutive_errors_limit(config[CONF_CONSECUTIVE_ERRORS_LIMIT]))
