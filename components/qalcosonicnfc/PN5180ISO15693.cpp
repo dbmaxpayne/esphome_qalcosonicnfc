@@ -363,9 +363,15 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
   if (0 == (status & RX_SOF_DET_IRQ_STAT)) {
     return EC_NO_CARD;
   }
+  uint32_t waitStart = millis();
   while (0 == (status & RX_IRQ_STAT)) {
-    delay(10);
-    status = getIRQStatus();
+      if (millis() - waitStart > 500) {
+          ESP_LOGE(TAG, "Timeout waiting for RX_IRQ_STAT");
+          clearIRQStatus(0xffffffff);
+          return ISO15693_EC_UNKNOWN_ERROR;
+      }
+      delay(10);
+      status = getIRQStatus();
   }
 
   uint32_t rxStatus;
@@ -414,9 +420,15 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
     ESP_LOGE(TAG, "ERROR code=0x%02X - %s", EC_NO_CARD, ISO15693ErrorCodeToStr((ISO15693ErrorCode)EC_NO_CARD));
     return EC_NO_CARD;
   }
+  uint32_t waitStart = millis();
   while (0 == (status & RX_IRQ_STAT)) {
-    delay(10);
-    status = getIRQStatus();
+      if (millis() - waitStart > 500) {
+          ESP_LOGE(TAG, "Timeout waiting for RX_IRQ_STAT");
+          clearIRQStatus(0xffffffff);
+          return ISO15693_EC_UNKNOWN_ERROR;
+      }
+      delay(10);
+      status = getIRQStatus();
   }
 
   uint32_t rxStatus;
