@@ -279,12 +279,11 @@ void QalcosonicNfc::update() {
     }
    
    this->errorCount = 0;
-   this->consecutive_errors_sensor_->publish_state(0);
+   if(this->consecutive_errors_sensor_) this->consecutive_errors_sensor_->publish_state(0);
    this->publishSensors();
    
   
   this->nfc_->setRF_off();
-  this->nfc_->printIRQStatus(this->nfc_->getIRQStatus());
   
   ESP_LOGD(TAG, "Update cycle finished");
 }
@@ -353,7 +352,7 @@ void QalcosonicNfc::publishSensors() {
     char str_id_number[9];
     snprintf(str_id_number, sizeof(str_id_number), "%08u", id_number);
     ESP_LOGI(TAG, "ID Number: %s", str_id_number);
-    this->meter_id_sensor_->publish_state(str_id_number);
+    if(this->meter_id_sensor_) this->meter_id_sensor_->publish_state(str_id_number);
 
     // the data is only available for certain CI-Field codes (see M-Bus documentation 6.2 & 6.3)
     if (ci_field == 0x72 || ci_field == 0x7A) {
@@ -365,14 +364,14 @@ void QalcosonicNfc::publishSensors() {
         char str_man_id[4];
         snprintf(str_man_id, sizeof(str_man_id), "%c%c%c", char_1, char_2, char_3);
         ESP_LOGI(TAG, "Manufacturer Id: %s", str_man_id);
-        this->manufacturer_id_sensor_->publish_state(str_man_id);
+        if(this->manufacturer_id_sensor_) this->manufacturer_id_sensor_->publish_state(str_man_id);
 
         // meter version
         u_int8_t meter_version = readBuffer[start_idx + 13];
         char meter_version_str[4];
         snprintf(meter_version_str, sizeof(meter_version_str), "%u", meter_version);
         ESP_LOGI(TAG, "Meter version: %s", meter_version_str);
-        this->meter_version_sensor_->publish_state(meter_version_str);
+        if(this->meter_version_sensor_) this->meter_version_sensor_->publish_state(meter_version_str);
     }
 
     uint8_t *buf = this->readBuffer + payload_offset;
@@ -443,42 +442,42 @@ void QalcosonicNfc::publishSensors() {
             case 0x1300: {
                 int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "Water Usage: %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
-                this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
+                if(this->water_usage_sensor_) this->water_usage_sensor_->publish_state(waterUsage/1000.0f);
                 break;
             }
 
             case 0x933b: {
                 int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "Water Usage (Only Positive): %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
-                this->water_usage_positive_sensor_->publish_state(waterUsage/1000.0f);
+                if(this->water_usage_positive_sensor_) this->water_usage_positive_sensor_->publish_state(waterUsage/1000.0f);
                 break;
             }
 
             case 0x933c: {
                 int32_t waterUsage = int32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "Water Usage (Only Negative): %iL / %1.3fm³", waterUsage, waterUsage/1000.0f);
-                this->water_usage_negative_sensor_->publish_state(waterUsage/1000.0f);
+                if(this->water_usage_negative_sensor_) this->water_usage_negative_sensor_->publish_state(waterUsage/1000.0f);
                 break;
             }
 
             case 0x3b00: {
                 int16_t waterFlow = int16_t(buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "Water Flow: %iL / %1.3fm³", waterFlow, waterFlow/1000.0f);
-                this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
+                if (this->water_flow_sensor_) this->water_flow_sensor_->publish_state(waterFlow/1000.0f);
                 break;
             }
 
             case 0x5900: {
                 int16_t flowTemperature = int16_t(buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "Water Temperature: %2.1f°C", flowTemperature/100.0f);
-                this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
+                if (this->water_temperature_sensor_) this->water_temperature_sensor_->publish_state(flowTemperature/100.0f);
                 break;
             }
 
             case 0x6600: {
                 int16_t externalTemperature = int16_t(buf[1] << 8 | buf[0]);
                 ESP_LOGI(TAG, "External Temperature: %2.1f°C", externalTemperature/10.0f);
-                this->external_temperature_sensor_->publish_state(externalTemperature/10.0f);
+                if (this->external_temperature_sensor_) this->external_temperature_sensor_->publish_state(externalTemperature/10.0f);
                 break;
             }
 
@@ -508,21 +507,21 @@ void QalcosonicNfc::publishSensors() {
                     snprintf(str_timepoint, sizeof(str_timepoint), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
                 }
                 ESP_LOGI(TAG, "Timepoint: %s", str_timepoint);
-                this->timepoint_sensor_->publish_state(str_timepoint);
+                if(this->timepoint_sensor_) this->timepoint_sensor_->publish_state(str_timepoint);
 
                 // publish the timepoint string as raw data without any date math
                 // may be offset from the current time by one hour because the meter does not switch to/from DST
                 char str_timepoint_raw[17];
                 snprintf(str_timepoint_raw, sizeof(str_timepoint_raw), "%04u-%02u-%02u %02u:%02u", year, month, day, hour, minute);
                 ESP_LOGI(TAG, "Timepoint raw: %s", str_timepoint_raw);
-                this->timepoint_sensor_raw_->publish_state(str_timepoint_raw);
+                if(this->timepoint_sensor_raw_) this->timepoint_sensor_raw_->publish_state(str_timepoint_raw);
                 break;
             }
 
             case 0xfd74: {
                 uint8_t batteryPercentage = buf[0];
                 ESP_LOGI(TAG, "Battery Percentage: %u%%", batteryPercentage);
-                this->battery_level_sensor_->publish_state(batteryPercentage);
+                if(this->battery_level_sensor_) this->battery_level_sensor_->publish_state(batteryPercentage);
                 break;
             }
 
@@ -542,7 +541,7 @@ void QalcosonicNfc::publishSensors() {
                     ESP_LOGI(TAG, "Serial Number: %08u", serialNumber);
                     char str_serial_number[9]; 
                     snprintf(str_serial_number, sizeof(str_serial_number), "%08u", serialNumber);
-                    this->serial_number_sensor_->publish_state(str_serial_number);
+                    if(this->serial_number_sensor_) this->serial_number_sensor_->publish_state(str_serial_number);
                     break;
                 }
 
@@ -554,25 +553,25 @@ void QalcosonicNfc::publishSensors() {
                     char str_error[12]; 
                     snprintf(str_error, sizeof(str_error), "%02X %02X %02X %02X", buf[0], buf[1], buf[2], buf[3]);
                     ESP_LOGI(TAG, "Error Flags Raw: %s", str_error);
-                    this->error_flags_raw_->publish_state(str_error);
+                    if(this->error_flags_raw_) this->error_flags_raw_->publish_state(str_error);
 
-                    this->error_reconfiguration_warning_->publish_state(buf[0] & (1 << 1));
-                    this->error_no_consumption_->publish_state(buf[0] & (1 << 2));
-                    this->error_damage_meter_housing_->publish_state(buf[0] & (1 << 3));
-                    this->error_calculator_hardware_failure_->publish_state(buf[0] & (1 << 4));
+                    if(this->error_reconfiguration_warning_) this->error_reconfiguration_warning_->publish_state(buf[0] & (1 << 1));
+                    if(this->error_no_consumption_) this->error_no_consumption_->publish_state(buf[0] & (1 << 2));
+                    if(this->error_damage_meter_housing_) this->error_damage_meter_housing_->publish_state(buf[0] & (1 << 3));
+                    if(this->error_calculator_hardware_failure_) this->error_calculator_hardware_failure_->publish_state(buf[0] & (1 << 4));
 
-                    this->error_leakage_->publish_state(buf[1] & (1 << 1));
-                    this->error_burst_->publish_state(buf[1] & (1 << 2));
-                    this->error_optical_communication_->publish_state(buf[1] & (1 << 3));
-                    this->error_low_battery_->publish_state(buf[1] & (1 << 4));
+                    if(this->error_leakage_) this->error_leakage_->publish_state(buf[1] & (1 << 1));
+                    if(this->error_burst_) this->error_burst_->publish_state(buf[1] & (1 << 2));
+                    if(this->error_optical_communication_) this->error_optical_communication_->publish_state(buf[1] & (1 << 3));
+                    if(this->error_low_battery_) this->error_low_battery_->publish_state(buf[1] & (1 << 4));
 
-                    this->error_software_failure_->publish_state(buf[2] & (1 << 3));
-                    this->error_hardware_failure_->publish_state(buf[2] & (1 << 4));
+                    if(this->error_software_failure_) this->error_software_failure_->publish_state(buf[2] & (1 << 3));
+                    if(this->error_hardware_failure_) this->error_hardware_failure_->publish_state(buf[2] & (1 << 4));
 
-                    this->error_no_signal_->publish_state(buf[3] & (1 << 1));
-                    this->error_reverse_flow_->publish_state(buf[3] & (1 << 2));
-                    this->error_flow_rate_->publish_state(buf[3] & (1 << 3));
-                    this->error_freeze_alert_->publish_state(buf[3] & (1 << 4));
+                    if(this->error_no_signal_) this->error_no_signal_->publish_state(buf[3] & (1 << 1));
+                    if(this->error_reverse_flow_) this->error_reverse_flow_->publish_state(buf[3] & (1 << 2));
+                    if(this->error_flow_rate_) this->error_flow_rate_->publish_state(buf[3] & (1 << 3));
+                    if(this->error_freeze_alert_) this->error_freeze_alert_->publish_state(buf[3] & (1 << 4));
                     break;
                 }
 
@@ -580,7 +579,7 @@ void QalcosonicNfc::publishSensors() {
                 {
                     uint32_t operatingTimeSec = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                     ESP_LOGI(TAG, "Operating Time: %u seconds (%.1f days)", operatingTimeSec, operatingTimeSec / 86400.0f);
-                    this->operating_time_sensor_->publish_state(operatingTimeSec);
+                    if(this->operating_time_sensor_) this->operating_time_sensor_->publish_state(operatingTimeSec);
                     break;
                 }
 
@@ -588,7 +587,7 @@ void QalcosonicNfc::publishSensors() {
                 {
                     uint32_t onTimeSec = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                     ESP_LOGI(TAG, "On Time: %u seconds (%.1f days)", onTimeSec, onTimeSec / 86400.0f);
-                    this->on_time_sensor_->publish_state(onTimeSec);
+                    if(this->on_time_sensor_) this->on_time_sensor_->publish_state(onTimeSec);
                     break;
                 }
         }
@@ -596,36 +595,36 @@ void QalcosonicNfc::publishSensors() {
         buf += data_size;
     }
 
-    this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
+    if(this->raw_data_sensor_) this->raw_data_sensor_->publish_state(getFormattedHexString("", responseLength, readBuffer).c_str());
 }
 
 void QalcosonicNfc::publishSensorsAsFailed() {
-    this->water_usage_sensor_->publish_state(NAN);
-    this->water_usage_positive_sensor_->publish_state(NAN);
-    this->water_usage_negative_sensor_->publish_state(NAN);
-    this->water_flow_sensor_->publish_state(NAN);
-    this->water_temperature_sensor_->publish_state(NAN);
-    this->external_temperature_sensor_->publish_state(NAN);
-    this->battery_level_sensor_->publish_state(NAN);
-    this->operating_time_sensor_->publish_state(NAN);
-    this->on_time_sensor_->publish_state(NAN);
-    this->raw_data_sensor_->publish_state("");
-    this->serial_number_sensor_->publish_state("");
-    this->error_flags_raw_->publish_state("");
-    this->error_reconfiguration_warning_->publish_state(false);
-    this->error_no_consumption_->publish_state(false);
-    this->error_damage_meter_housing_->publish_state(false);
-    this->error_calculator_hardware_failure_->publish_state(false);
-    this->error_leakage_->publish_state(false);
-    this->error_burst_->publish_state(false);
-    this->error_optical_communication_->publish_state(false);
-    this->error_low_battery_->publish_state(false);
-    this->error_software_failure_->publish_state(false);
-    this->error_hardware_failure_->publish_state(false);
-    this->error_no_signal_->publish_state(false);
-    this->error_reverse_flow_->publish_state(false);
-    this->error_flow_rate_->publish_state(false);
-    this->error_freeze_alert_->publish_state(false);
+    if(this->water_usage_sensor_) this->water_usage_sensor_->publish_state(NAN);
+    if(this->water_usage_positive_sensor_) this->water_usage_positive_sensor_->publish_state(NAN);
+    if(this->water_usage_negative_sensor_) this->water_usage_negative_sensor_->publish_state(NAN);
+    if(this->water_flow_sensor_) this->water_flow_sensor_->publish_state(NAN);
+    if(this->water_temperature_sensor_) this->water_temperature_sensor_->publish_state(NAN);
+    if(this->external_temperature_sensor_) this->external_temperature_sensor_->publish_state(NAN);
+    if(this->battery_level_sensor_) this->battery_level_sensor_->publish_state(NAN);
+    if(this->operating_time_sensor_) this->operating_time_sensor_->publish_state(NAN);
+    if(this->on_time_sensor_) this->on_time_sensor_->publish_state(NAN);
+    if(this->raw_data_sensor_) this->raw_data_sensor_->publish_state("");
+    if(this->serial_number_sensor_) this->serial_number_sensor_->publish_state("");
+    if(this->error_flags_raw_) this->error_flags_raw_->publish_state("");
+    if(this->error_reconfiguration_warning_) this->error_reconfiguration_warning_->publish_state(false);
+    if(this->error_no_consumption_) this->error_no_consumption_->publish_state(false);
+    if(this->error_damage_meter_housing_) this->error_damage_meter_housing_->publish_state(false);
+    if(this->error_calculator_hardware_failure_) this->error_calculator_hardware_failure_->publish_state(false);
+    if(this->error_leakage_) this->error_leakage_->publish_state(false);
+    if(this->error_burst_) this->error_burst_->publish_state(false);
+    if(this->error_optical_communication_) this->error_optical_communication_->publish_state(false);
+    if(this->error_low_battery_) this->error_low_battery_->publish_state(false);
+    if(this->error_software_failure_) this->error_software_failure_->publish_state(false);
+    if(this->error_hardware_failure_) this->error_hardware_failure_->publish_state(false);
+    if(this->error_no_signal_) this->error_no_signal_->publish_state(false);
+    if(this->error_reverse_flow_) this->error_reverse_flow_->publish_state(false);
+    if(this->error_flow_rate_) this->error_flow_rate_->publish_state(false);
+    if(this->error_freeze_alert_) this->error_freeze_alert_->publish_state(false);
 
     this->status_set_error();
 }
@@ -634,7 +633,7 @@ void QalcosonicNfc::handleReadoutFailed() {
     this->errorFlag = true;
     this->errorCount++;
     ESP_LOGD(TAG, "Readout failed. Consecutive errors: %u", this->errorCount);
-    this->consecutive_errors_sensor_->publish_state(this->errorCount);
+    if(this->consecutive_errors_sensor_) this->consecutive_errors_sensor_->publish_state(this->errorCount);
     if (this->consecutive_errors_limit_ > 0 && this->errorCount >= this->consecutive_errors_limit_) {
         this->publishSensorsAsFailed();
     }
