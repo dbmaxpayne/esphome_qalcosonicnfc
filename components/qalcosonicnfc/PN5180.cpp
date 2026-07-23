@@ -182,7 +182,7 @@ bool PN5180::readRegister(uint8_t reg, uint32_t *value) {
       ESP_LOGE(TAG, "Reading register %02X failed", reg);
       return false;
   }
-  ESP_LOGD(TAG, "Register value=%02X", *value);
+  ESP_LOGD(TAG, "Register value=%02lX", *value);
 
   return true;
 }
@@ -510,7 +510,7 @@ uint32_t PN5180::getIRQStatus() {
 }
 
 bool PN5180::clearIRQStatus(uint32_t irqMask) {
-  ESP_LOGD(TAG, "Clear IRQ-Status with mask=0x%02X:", irqMask);
+  ESP_LOGD(TAG, "Clear IRQ-Status with mask=0x%02lX:", irqMask);
 
   return writeRegister(IRQ_CLEAR, irqMask);
 }
@@ -538,7 +538,7 @@ void PN5180::printIRQStatus(uint32_t irqStatus) {
   if (irqStatus & (1<<18)) readableIRQStatus += "HV_ERROR ";
   if (irqStatus & (1<<19)) readableIRQStatus += "LPCD ";
   
-  ESP_LOGD(TAG, "IRQ-Status 0x%08X: [%s]", irqStatus, readableIRQStatus.c_str());
+  ESP_LOGD(TAG, "IRQ-Status 0x%08lX: [%s]", irqStatus, readableIRQStatus.c_str());
 }
 
 

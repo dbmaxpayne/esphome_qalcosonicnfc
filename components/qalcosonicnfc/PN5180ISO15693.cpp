@@ -378,7 +378,7 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
   readRegister(RX_STATUS, &rxStatus);
 
   uint16_t len = (uint16_t)(rxStatus & 0x000001ff);
-  ESP_LOGD(TAG, "RX-Status=0x%02X, len=%u", rxStatus, len);
+  ESP_LOGD(TAG, "RX-Status=0x%02lX, len=%u", rxStatus, len);
 
  *resultPtr = readData(len);
   if (0L == *resultPtr) {
@@ -435,7 +435,7 @@ ISO15693ErrorCode PN5180ISO15693::issueISO15693Command(uint8_t *cmd, uint8_t cmd
   readRegister(RX_STATUS, &rxStatus);
   
   *responseLength = (uint16_t)(rxStatus & 0x000001ff);
-  ESP_LOGD(TAG, "RX-Status=0x%02X, len=%u", rxStatus, *responseLength);
+  ESP_LOGD(TAG, "RX-Status=0x%02lX, len=%u", rxStatus, *responseLength);
 
  *resultPtr = readData(*responseLength);
   if (0L == *resultPtr) {
