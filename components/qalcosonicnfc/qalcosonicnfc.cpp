@@ -189,35 +189,27 @@ void QalcosonicNfc::loop() {
 void QalcosonicNfc::update() {
   ESP_LOGD(TAG, "Update cycle has been started");
   
-  if (!this->nfc_->setupRF()) {
-    this->handleReadoutFailed();
-    return;
-  }
-  
   if (this->errorFlag) {
-    ESP_LOGD(TAG, "Previous cycle failed. Trying to reset PN5180...");
-    uint32_t irqStatus = this->nfc_->getIRQStatus();
-    this->nfc_->printIRQStatus(irqStatus);
-
-    if (0 == (RX_SOF_DET_IRQ_STAT & irqStatus)) {
-      ESP_LOGI(TAG, "*** Water meter not found or did not reply!");
-    }
-    
+    ESP_LOGW(TAG, "Previous cycle failed. Resetting PN5180 before RF setup...");
     if (!this->nfc_->reset()) {
       this->handleReadoutFailed();
       return;
     }
-    if (!this->nfc_->setupRF()) {
-      this->handleReadoutFailed();
-      return;
-    }
-
-    this->errorFlag = false;
   }
   else {
-      this->status_clear_error();
+    this->status_clear_error();
   }
-  
+
+  if (!this->nfc_->setupRF()) {
+    this->handleReadoutFailed();
+    return;
+  }
+
+  if (this->errorFlag) {
+    ESP_LOGI(TAG, "PN5180 recovery reset completed successfully");
+    this->errorFlag = false;
+  }
+
   App.feed_wdt();
   ESP_LOGI(TAG, "Scanning for water meter...");
   ISO15693ErrorCode rc = this->nfc_->getInventory(this->meterUid);

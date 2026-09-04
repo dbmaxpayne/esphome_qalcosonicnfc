@@ -441,7 +441,12 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
   // 2.
   this->SPIDevice_->write_array(sendBuffer, sendBufferLen);
   // 3.
-  if (!this->waitForPinState(10, this->BUSY_, HIGH)) { ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, HIGH)) {
+    this->NSS_->digital_write(HIGH);
+    delay(1);
+    ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high");
+    return false;
+  }
   // 4.
   this->NSS_->digital_write(HIGH);
   delay(1);
@@ -461,7 +466,12 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
     recvBuffer[i] = this->SPIDevice_->transfer_byte(0xff);
   }
   // 3.
-  if (!this->waitForPinState(10, this->BUSY_, HIGH)) { ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high"); return false; }
+  if (!this->waitForPinState(10, this->BUSY_, HIGH)) {
+    this->NSS_->digital_write(HIGH);
+    delay(1);
+    ESP_LOGE(TAG, "Step 3 - Failed to wait for BUSY_ pin to get high");
+    return false;
+  }
   // 4.
   this->NSS_->digital_write(HIGH);
   delay(1);
@@ -478,6 +488,8 @@ bool PN5180::transceiveCommand(uint8_t *sendBuffer, size_t sendBufferLen, uint8_
  */
 bool PN5180::reset() {
   ESP_LOGD(TAG, "Resetting device...");
+  this->NSS_->digital_write(HIGH);
+  delay(1);
   this->RST_->digital_write(LOW); // at least 10us required
   delay(1);
   this->RST_->digital_write(HIGH); // Table 138: 2.5ms to ramp up required
