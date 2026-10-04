@@ -24,8 +24,12 @@
 
 namespace esphome {
 
-#define LOW  false
-#define HIGH true
+#ifndef LOW
+#define LOW 0x0
+#endif
+#ifndef HIGH
+#define HIGH 0x1
+#endif
 
 // PN5180 Registers
 #define SYSTEM_CONFIG       (0x00)

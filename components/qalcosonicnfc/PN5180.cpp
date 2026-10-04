@@ -19,7 +19,7 @@
 //
 
 //#include <Arduino.h>
-#include <driver/gpio.h>
+//#include <driver/gpio.h>
 #include "esphome/core/log.h"
 #include "PN5180.h"
 #include "PN5180Debug.h"
@@ -77,8 +77,22 @@ void PN5180::begin() {
   SPIComponent_->set_clk(SCK_);
   SPIComponent_->set_miso(MISO_);
   SPIComponent_->set_mosi(MOSI_);
-  SPIComponent_->set_interface(SPI2_HOST);
-  SPIComponent_->set_interface_name("SPI2_HOST");
+
+  #ifdef USE_ESP32
+    SPIComponent_->set_interface(SPI2_HOST);
+    SPIComponent_->set_interface_name("SPI2_HOST");
+  #elif defined(USE_ARDUINO)
+  #ifdef USE_RP2040
+  #error TODO - figure out RP2040 SPI interface settings
+  #else
+    // wemos d1 mini with esp8266 seems to work with the default SPI interface
+    SPIComponent_->set_interface(&SPI);
+    SPIComponent_->set_interface_name("SPI");
+  #endif
+  #elif defined(CLANG_TIDY)
+  #error TODO - figure out the SPI interface settings
+  #endif  // USE_ESP32
+  
   SPIDevice_->set_bit_order(spi::BIT_ORDER_MSB_FIRST);
   SPIDevice_->set_spi_parent(SPIComponent_);
   SPIDevice_->set_data_rate(spi::DATA_RATE_2MHZ);// Max is 7MHz

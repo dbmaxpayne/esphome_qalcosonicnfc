@@ -28,7 +28,7 @@ namespace qalcosonicnfc {
 
 static const char *const TAG = "qalcosonicnfc";
 void testFunc () {
-    ESP_LOGI(TAG, TAG);
+    ESP_LOGI(TAG, "%s", TAG);
 }
 QalcosonicNfc::QalcosonicNfc(GPIOPin *mosi, GPIOPin *miso, GPIOPin *sck, GPIOPin *nss, GPIOPin *busy, GPIOPin *rst) {
     this->MOSI_ = mosi;
@@ -349,7 +349,7 @@ void QalcosonicNfc::publishSensors() {
                          (readBuffer[start_idx + 9] >> 4) * 100000 + (readBuffer[start_idx + 9] & 0x0F) * 10000 +
                          (readBuffer[start_idx + 8] >> 4) * 1000 + (readBuffer[start_idx + 8] & 0x0F) * 100 +
                          (readBuffer[start_idx + 7] >> 4) * 10 + (readBuffer[start_idx + 7] & 0x0F);
-    char str_id_number[9];
+    char str_id_number[16];
     snprintf(str_id_number, sizeof(str_id_number), "%08u", id_number);
     ESP_LOGI(TAG, "ID Number: %s", str_id_number);
     if(this->meter_id_sensor_) this->meter_id_sensor_->publish_state(str_id_number);
@@ -486,7 +486,7 @@ void QalcosonicNfc::publishSensors() {
                 int32_t hour = buf[1] & 0x1F;
                 int32_t day = buf[2] & 0x1F;
                 int32_t month = buf[3] & 0x0F;
-                int32_t year = (buf[2] >> 5 | (buf[3] >> 1) & 0xF8) + 2000;
+                int32_t year = ((buf[2] >> 5) | ((buf[3] >> 1) & 0xF8)) + 2000;
                 char str_timepoint[32];
                 if (!this->timezone_.empty()) {
                     setenv("TZ", this->timezone_.c_str(), 1);
@@ -539,7 +539,7 @@ void QalcosonicNfc::publishSensors() {
                         serialNumber = uint32_t(buf[3] << 24 | buf[2] << 16 | buf[1] << 8 | buf[0]);
                     }
                     ESP_LOGI(TAG, "Serial Number: %08u", serialNumber);
-                    char str_serial_number[9]; 
+                    char str_serial_number[16]; 
                     snprintf(str_serial_number, sizeof(str_serial_number), "%08u", serialNumber);
                     if(this->serial_number_sensor_) this->serial_number_sensor_->publish_state(str_serial_number);
                     break;

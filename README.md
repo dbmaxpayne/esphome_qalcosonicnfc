@@ -8,17 +8,17 @@ ESPHome component for reading an Axioma Qalcosonic W1 water meter via a PN5180 N
 - (Perfboards)
 
 ## Wiring
-| ESP32 Pin | PN5180 Pin |
-| :---      | :---       |
-| VIN / 5V  | 5V         |
-| 3.3V      | 3.3V       |
-| GND       | GND        |
-| SCLK, 18  | SCLK       |
-| MISO, 19  | MISO       |
-| MOSI, 23  | MOSI       |
-| 14        | NSS        |
-| 16        | BUSY       |
-| 17        | RST        |
+| ESP32 Pin | PN5180 Pin | ESP8266 Pin  |
+| :---      | :---       | :---         |
+| VIN / 5V  | 5V         | 5V           |
+| 3.3V      | 3.3V       | 3.3V         |
+| GND       | GND        | GND          |
+| SCLK, 18  | SCLK       | SCLK, 14, D5 |
+| MISO, 19  | MISO       | MISO, 12, D6 |
+| MOSI, 23  | MOSI       | MOSI, 13, D7 |
+| 14        | NSS        | 4, D2        |
+| 16        | BUSY       | 5, D1        |
+| 17        | RST        | 0, D3        |
 
 ## Special Thanks
 Special thanks goes to @ATrappmann for his PN5180-Library (https://github.com/ATrappmann/PN5180-Library).
